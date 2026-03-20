@@ -1,0 +1,19 @@
+{
+  "name": "@tovaclaw/sdk",
+  "version": "0.1.0",
+  "description": "Node.js SDK for the TovaClaw AI agent framework",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch"
+  },
+  "keywords": ["tova", "tovaclaw", "ai", "agent", "sdk"],
+  "license": "MIT",
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  }
+}
