@@ -70,7 +70,7 @@ export default function Hero() {
         >
           TovaClaw is an open-source agent framework built with LangGraph. Pluggable
           providers, multi-LLM support, and a flexible tool system let you build
-          conversational AI for e-commerce, customer support, healthcare, fintech,
+          conversational AI for e-commerce, customer support, fintech,
           or any domain.
         </motion.p>
 
