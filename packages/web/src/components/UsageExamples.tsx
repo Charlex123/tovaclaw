@@ -111,6 +111,94 @@ scheduler.on_event(
 
 await scheduler.start()`,
   },
+  {
+    id: "sdk-chat",
+    title: "SDK: Chat",
+    language: "typescript",
+    filename: "chat.ts",
+    code: `import { TovaClient } from "@tovaclaw/sdk";
+
+const client = new TovaClient({
+  baseUrl: "http://localhost:8000",
+  token: userJwt,
+});
+
+// Send a message and handle the response
+const res = await client.chat({
+  message: "Find me ibuprofen near me",
+  conversation_id: "conv_abc123",
+  latitude: 6.4541,
+  longitude: 3.3947,
+});
+
+if (res.action === "product_results") {
+  // Render product cards from structured data
+  const products = res.data?.results;
+  console.log(res.reply, products);
+}
+
+// Continue the conversation
+const followUp = await client.chat({
+  message: "Order the first one",
+  conversation_id: res.conversation_id,
+});`,
+  },
+  {
+    id: "sdk-conversations",
+    title: "SDK: Conversations",
+    language: "typescript",
+    filename: "conversations.ts",
+    code: `import { TovaClient } from "@tovaclaw/sdk";
+
+const client = new TovaClient({
+  baseUrl: "http://localhost:8000",
+  token: userJwt,
+});
+
+// List all conversations
+const { conversations } = await client.listConversations();
+conversations.forEach((c) => {
+  console.log(c.id, c.title, c.message_count);
+});
+
+// Load a specific conversation's messages
+const detail = await client.getConversation("conv_abc123");
+detail.messages.forEach((msg) => {
+  console.log(msg.role, msg.content);
+  if (msg.action) {
+    console.log("Action:", msg.action, msg.data);
+  }
+});`,
+  },
+  {
+    id: "sdk-execute",
+    title: "SDK: Execute",
+    language: "typescript",
+    filename: "execute.ts",
+    code: `import { TovaClient, TovaError } from "@tovaclaw/sdk";
+
+const client = new TovaClient({
+  baseUrl: "http://localhost:8000",
+  token: serviceToken,
+});
+
+// Programmatically execute an order
+const result = await client.execute({
+  order_id: "order_xyz789",
+});
+
+if (result.success) {
+  console.log("Order fulfilled:", result.message);
+  console.log("Tools used:", result.tools_used);
+  if (result.alternatives_found) {
+    console.log("Alternatives were suggested");
+  }
+}
+
+// Health check
+const health = await client.health();
+console.log(health.status, health.version);`,
+  },
 ];
 
 export default function UsageExamples() {

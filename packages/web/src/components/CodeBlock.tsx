@@ -57,6 +57,91 @@ export default function CodeBlock({ code, language = "python", filename }: CodeB
 }
 
 function highlightSyntax(code: string, language: string) {
+  if (language === "typescript" || language === "javascript") {
+    return code.split("\n").map((line, i) => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("//")) {
+        return (
+          <div key={i}>
+            <span className="text-neutral-500">{line}</span>
+          </div>
+        );
+      }
+
+      const parts: React.ReactNode[] = [];
+      let remaining = line;
+      let partKey = 0;
+
+      const segments: { start: number; end: number; cls: string }[] = [];
+
+      // Strings first
+      const strRegex = /(`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g;
+      let m;
+      while ((m = strRegex.exec(remaining)) !== null) {
+        segments.push({ start: m.index, end: m.index + m[0].length, cls: "text-green-400" });
+      }
+
+      // Keywords
+      const keywords = /\b(import|from|export|const|let|var|function|return|if|else|for|of|in|while|async|await|new|class|extends|interface|type|typeof|as|try|catch|finally|throw|switch|case|default|break|continue|null|undefined|true|false|void)\b/g;
+      while ((m = keywords.exec(remaining)) !== null) {
+        if (!segments.some((s) => m!.index >= s.start && m!.index < s.end)) {
+          segments.push({ start: m.index, end: m.index + m[0].length, cls: "text-purple-400" });
+        }
+      }
+
+      // Builtins / known types
+      const builtins = /\b(console|Promise|Record|string|number|boolean|Array|Object|Error|JSON|Math|Date|RegExp|Map|Set)\b/g;
+      while ((m = builtins.exec(remaining)) !== null) {
+        if (!segments.some((s) => m!.index >= s.start && m!.index < s.end)) {
+          segments.push({ start: m.index, end: m.index + m[0].length, cls: "text-cyan-400" });
+        }
+      }
+
+      // Methods after dot
+      const methods = /\.(\w+)\s*\(/g;
+      while ((m = methods.exec(remaining)) !== null) {
+        const mStart = m.index + 1;
+        const mEnd = mStart + m[1].length;
+        if (!segments.some((s) => mStart >= s.start && mStart < s.end)) {
+          segments.push({ start: mStart, end: mEnd, cls: "text-yellow-400" });
+        }
+      }
+
+      segments.sort((a, b) => a.start - b.start);
+
+      let lastIndex = 0;
+      for (const seg of segments) {
+        if (seg.start > lastIndex) {
+          parts.push(
+            <span key={partKey++} className="text-neutral-200">
+              {remaining.slice(lastIndex, seg.start)}
+            </span>
+          );
+        }
+        parts.push(
+          <span key={partKey++} className={seg.cls}>
+            {remaining.slice(seg.start, seg.end)}
+          </span>
+        );
+        lastIndex = seg.end;
+      }
+
+      if (lastIndex < remaining.length) {
+        parts.push(
+          <span key={partKey++} className="text-neutral-200">
+            {remaining.slice(lastIndex)}
+          </span>
+        );
+      }
+
+      return (
+        <div key={i}>
+          {parts.length > 0 ? parts : <span className="text-neutral-200">{line || "\u00A0"}</span>}
+        </div>
+      );
+    });
+  }
+
   if (language === "bash" || language === "shell") {
     return code.split("\n").map((line, i) => {
       const trimmed = line.trim();

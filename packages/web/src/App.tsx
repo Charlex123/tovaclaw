@@ -5,6 +5,7 @@ import Installation from "./components/Installation";
 import Architecture from "./components/Architecture";
 import ApiReference from "./components/ApiReference";
 import UsageExamples from "./components/UsageExamples";
+import SdkSection from "./components/SdkSection";
 import Footer from "./components/Footer";
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
       <Architecture />
       <ApiReference />
       <UsageExamples />
+      <SdkSection />
       <Footer />
     </div>
   );

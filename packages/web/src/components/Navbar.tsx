@@ -8,6 +8,7 @@ const navLinks = [
   { label: "Architecture", href: "#architecture" },
   { label: "API", href: "#api" },
   { label: "Examples", href: "#examples" },
+  { label: "SDK", href: "#sdk" },
 ];
 
 export default function Navbar() {

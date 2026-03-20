@@ -1,14 +1,15 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import CodeBlock from "./CodeBlock";
 
-const installOptions = [
+const pythonInstallOptions = [
   { label: "Anthropic (Claude)", cmd: 'pip install "tova[anthropic]"' },
   { label: "OpenAI (GPT)", cmd: 'pip install "tova[openai]"' },
   { label: "Google (Gemini)", cmd: 'pip install "tova[google]"' },
   { label: "All providers", cmd: 'pip install "tova[all]"' },
 ];
 
-const quickStart = `from tova_core.app import create_app
+const pythonQuickStart = `from tova_core.app import create_app
 from my_backend import MyBackend, MyStore, MyAuth
 
 app = create_app(
@@ -19,7 +20,26 @@ app = create_app(
 
 # Run with: uvicorn main:app --port 8000`;
 
+const nodeQuickStart = `import { TovaClient } from "@tovaclaw/sdk";
+
+const client = new TovaClient({
+  baseUrl: "http://localhost:8000",
+  token: "your-auth-token",
+});
+
+// Chat with the AI agent
+const response = await client.chat({
+  message: "I need to place an order",
+  latitude: 6.5,
+  longitude: 3.4,
+});
+
+console.log(response.reply);
+console.log(response.action, response.data);`;
+
 export default function Installation() {
+  const [tab, setTab] = useState<"python" | "node">("python");
+
   return (
     <section id="installation" className="relative py-24 px-6">
       {/* Subtle divider gradient */}
@@ -37,39 +57,100 @@ export default function Installation() {
             Up and running in minutes
           </h2>
           <p className="text-neutral-400 max-w-xl mx-auto">
-            Install with pip, wire up your backend, and start building
-            AI-powered agents.
+            Run the agent service with Python, or integrate from Node.js with
+            the SDK.
           </p>
         </motion.div>
 
+        {/* Language tabs */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-8"
+          transition={{ duration: 0.5, delay: 0.05 }}
+          className="flex gap-1 mb-8 p-1 bg-white/[0.02] border border-white/5 rounded-xl w-fit"
         >
-          <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
-            Choose your LLM provider
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {installOptions.map((opt) => (
-              <InstallCard key={opt.label} label={opt.label} cmd={opt.cmd} />
-            ))}
-          </div>
+          <button
+            onClick={() => setTab("python")}
+            className={`px-5 py-2 text-sm rounded-lg transition-all ${
+              tab === "python"
+                ? "bg-white/10 text-white font-medium"
+                : "text-neutral-500 hover:text-neutral-300 hover:bg-white/5"
+            }`}
+          >
+            Python
+          </button>
+          <button
+            onClick={() => setTab("node")}
+            className={`px-5 py-2 text-sm rounded-lg transition-all ${
+              tab === "node"
+                ? "bg-white/10 text-white font-medium"
+                : "text-neutral-500 hover:text-neutral-300 hover:bg-white/5"
+            }`}
+          >
+            Node.js
+          </button>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
-            Quick start
-          </h3>
-          <CodeBlock code={quickStart} language="python" filename="main.py" />
-        </motion.div>
+        {tab === "python" ? (
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="mb-8"
+            >
+              <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
+                Choose your LLM provider
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {pythonInstallOptions.map((opt) => (
+                  <InstallCard key={opt.label} label={opt.label} cmd={opt.cmd} />
+                ))}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
+                Quick start
+              </h3>
+              <CodeBlock code={pythonQuickStart} language="python" filename="main.py" />
+            </motion.div>
+          </>
+        ) : (
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="mb-8"
+            >
+              <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
+                Install the SDK
+              </h3>
+              <InstallCard label="npm" cmd="npm install @tovaclaw/sdk" />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
+                Quick start
+              </h3>
+              <CodeBlock code={nodeQuickStart} language="typescript" filename="app.ts" />
+            </motion.div>
+          </>
+        )}
       </div>
     </section>
   );
