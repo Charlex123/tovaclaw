@@ -1,19 +1,23 @@
 # Tova
 
-Open-source AI agent framework for healthcare order automation. Built with [LangGraph](https://github.com/langchain-ai/langgraph) and designed to work with **any** backend, database, and LLM provider.
+Open-source multi-agent AI framework built with [LangGraph](https://github.com/langchain-ai/langgraph). Pluggable providers, multi-LLM support, and a flexible tool system let you build conversational AI for **any domain** — e-commerce, customer support, healthcare, fintech, or anything else.
 
-Tova is a conversational AI agent that helps patients:
-- Search for and order medications, medical devices, and lab tests
-- Book appointments with doctors and nurses
-- Manage orders and track delivery
-- Handle recurring prescriptions
+## Features
+
+- **Custom agents** — Define agents with their own tools, prompts, personality, and workflows via `AgentConfig`
+- **Pluggable providers** — Implement a few interfaces to connect any backend, database, and auth system
+- **Multi-LLM support** — Claude, GPT, Gemini, or local models (Ollama, vLLM, LM Studio)
+- **Tool registry** — Register your own tools and attach them to any agent
+- **Agent memory** — Persistent context across conversations
+- **Scheduler** — Cron-based and event-driven agent execution
+- **Built-in order & appointment workflows** — Ready-to-use agents for common patterns
 
 ## How It Works
 
-Tova uses a **provider pattern** — you implement a few interfaces to connect the AI agent to your own backend and database:
+Tova uses a **provider pattern** — you implement a few interfaces to connect agents to your own systems:
 
 ```
-Your App → Tova Agent → Your Backend (via providers)
+Your App → Tova Agents → Your Backend (via providers)
                 ↓
            Your Database (via providers)
 ```
@@ -49,11 +53,9 @@ from tova_core.providers.auth import BaseAuth
 
 class MyBackend(BaseBackend):
     async def search_products(self, query, latitude=0, longitude=0, **kwargs):
-        # Search your product catalog
         return await my_db.search_products(query)
 
     async def create_order(self, data):
-        # Create an order in your system
         return await my_api.create_order(data)
 
     async def execute_order(self, order_id):
@@ -119,22 +121,65 @@ app = create_app(
 curl -X POST http://localhost:8000/agent/chat \
   -H "Authorization: Bearer <your-token>" \
   -H "Content-Type: application/json" \
-  -d '{"message": "I need paracetamol", "latitude": 6.45, "longitude": 3.42}'
+  -d '{"message": "Find me a laptop under $1000"}'
+```
+
+## Custom Agents
+
+Define agents with their own tools, personality, and triggers:
+
+```python
+from tova_core.models.agent import AgentConfig, AgentTrigger, TriggerType, ToolConfig
+from tova_core.agents.runtime import AgentRuntime
+from tova_core.tools.base import ToolRegistry
+
+# Register your tools
+registry = ToolRegistry()
+registry.register(my_search_tool)
+registry.register(my_order_tool)
+
+# Define an agent
+agent = AgentConfig(
+    name="SupportAgent",
+    description="Handles customer support inquiries",
+    system_prompt="You are a customer support agent...",
+    tools=[ToolConfig(tool_name="search_products"), ToolConfig(tool_name="lookup_order")],
+    trigger=AgentTrigger(type=TriggerType.MANUAL),
+)
+
+# Run it
+runtime = AgentRuntime(tool_registry=registry, store=my_store)
+result = await runtime.run(agent_config=agent, user_message="Where is my order?", user_id="user_123")
+```
+
+## Scheduler
+
+Run agents on cron schedules or in response to events:
+
+```python
+from tova_core.scheduler.engine import AgentScheduler
+
+scheduler = AgentScheduler(runtime=runtime)
+scheduler.register(weekly_digest_agent)
+scheduler.register(ticket_triage_agent)
+
+await scheduler.start()
+
+# Or trigger manually
+await scheduler.trigger_event("ticket_created", {"ticket_id": "T-1234"})
 ```
 
 ## API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/agent/chat` | POST | Conversational order management |
+| `/agent/chat` | POST | Conversational agent endpoint |
 | `/agent/execute` | POST | Execute a scheduled order |
 | `/agent/conversations` | GET | List user's conversations |
 | `/agent/conversation/{id}` | GET | Get conversation history |
 | `/health` | GET | Health check |
 
 ## LLM Providers
-
-Tova supports multiple LLM providers via environment variables:
 
 ```bash
 # Claude (default)
@@ -158,24 +203,10 @@ LOCAL_LLM_BASE_URL=http://localhost:11434/v1
 AGENT_MODEL=llama3.3
 ```
 
-## Custom System Prompt
-
-Override the default prompt to customize Tova's behavior for your platform:
-
-```python
-app = create_app(
-    backend_factory=lambda token: MyBackend(token),
-    store=MyStore(),
-    auth=MyAuth(),
-    system_prompt="""You are a health assistant for MyHealthApp.
-    Currency is USD. ...your custom instructions...""",
-)
-```
-
 ## Examples
 
-- **[Minimal](examples/minimal/)** — In-memory providers for quick testing
-- **[Nostra Health](examples/nostra/)** — Production implementation with Firestore + Node.js backend
+- **[Minimal](examples/minimal/)** — In-memory e-commerce example for quick testing
+- **[Healthcare](examples/healthcare/)** — Healthcare order automation with Firestore + Node.js backend
 
 ## Architecture
 
@@ -187,15 +218,22 @@ tova_core/
 │   ├── auth.py         # BaseAuth — token verification
 │   └── notifier.py     # BaseNotifier — notifications (optional)
 ├── agents/
-│   ├── order_agent.py  # Patient-facing conversational agent
-│   └── execution_agent.py  # Scheduler-facing execution agent
+│   ├── runtime.py      # AgentRuntime — runs any agent from AgentConfig
+│   ├── order_agent.py  # Built-in order management agent
+│   └── execution_agent.py  # Built-in order fulfillment agent
+├── models/
+│   ├── agent.py        # AgentConfig — full agent definition
+│   └── schemas.py      # Pydantic request/response models
 ├── tools/
-│   ├── registry.py     # Builds LangGraph tools from providers
+│   ├── base.py         # ToolRegistry + ToolDefinition
+│   ├── registry.py     # Built-in order/service tools
 │   └── helpers.py      # Proximity, date, and utility helpers
+├── memory/
+│   └── store.py        # AgentMemory — persistent context
+├── scheduler/
+│   └── engine.py       # AgentScheduler — cron + event triggers
 ├── prompts/
 │   └── default.py      # Default system prompts (customizable)
-├── models/
-│   └── schemas.py      # Pydantic request/response models
 ├── app.py              # FastAPI application factory
 ├── config.py           # Settings (env vars)
 └── llm.py              # LLM provider factory

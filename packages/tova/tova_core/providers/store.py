@@ -117,16 +117,16 @@ class BaseStore(ABC):
         """Search services directly from the database (fast path)."""
         raise NotImplementedError
 
-    # ── Optional: Practitioner/Appointment Data ───────────────
+    # ── Optional: Provider/Appointment Data ──────────────────
 
     async def search_practitioners(
         self,
-        practitioner_type: str = "doctor",
+        practitioner_type: str = "",
         specialty: str = "",
         query: str = "",
         limit: int = 10,
     ) -> list[dict]:
-        """Search practitioners directly from the database."""
+        """Search service providers directly from the database."""
         raise NotImplementedError
 
     async def get_appointments(
@@ -140,17 +140,22 @@ class BaseStore(ABC):
         raise NotImplementedError
 
     async def get_practitioner_specialties(self) -> list[str]:
-        """Get all available practitioner specialties."""
+        """Get all available provider specialties/categories."""
         raise NotImplementedError
 
     # ── Optional: Safety Data ─────────────────────────────────
 
-    async def check_drug_safety(self, drug_name: str) -> dict:
-        """Check drug safety alerts from your database.
+    async def check_item_safety(self, item_name: str) -> dict:
+        """Check item safety alerts from your database.
 
         Returns: {"safe": True/False, "warnings": [...]}
         """
-        return {"safe": True, "warnings": [], "message": f"No safety data available for {drug_name}"}
+        return {"safe": True, "warnings": [], "message": f"No safety data available for {item_name}"}
+
+    # Keep backwards-compatible alias
+    async def check_drug_safety(self, drug_name: str) -> dict:
+        """Alias for check_item_safety (backwards compatibility)."""
+        return await self.check_item_safety(drug_name)
 
     # ── Optional: Pending Conversations ───────────────────────
 

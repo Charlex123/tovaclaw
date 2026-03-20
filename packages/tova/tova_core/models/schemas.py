@@ -92,7 +92,7 @@ class OrderAgentState(BaseModel):
     # Appointment params
     selected_schedule: dict | None = None
     selected_slot: dict | None = None
-    appointment_type: str | None = None  # e.g., "doctor", "nurse"
+    appointment_type: str | None = None
     professional_name: str = ""
     specialty: str = ""
     reason_for_booking: str = ""

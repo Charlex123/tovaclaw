@@ -68,7 +68,7 @@ def create_app(
 
     app = FastAPI(
         title="Tova Agent Service",
-        description="AI agent for healthcare order automation",
+        description="Multi-agent AI framework with pluggable providers",
         version="0.1.0",
         lifespan=lifespan,
     )
@@ -99,7 +99,7 @@ def create_app(
         req: ChatRequest,
         authorization: str = Header(..., description="Bearer <token>"),
     ):
-        """Patient-facing conversational endpoint."""
+        """User-facing conversational endpoint."""
         token = _extract_token(authorization)
         user_id = await auth.verify_token(token)
 

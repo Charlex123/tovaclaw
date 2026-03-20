@@ -125,7 +125,7 @@ const client = new TovaClient({
 
 // Send a message and handle the response
 const res = await client.chat({
-  message: "Find me ibuprofen near me",
+  message: "Find me a laptop under $1000",
   conversation_id: "conv_abc123",
   latitude: 6.4541,
   longitude: 3.3947,

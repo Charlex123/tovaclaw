@@ -1,7 +1,7 @@
 """
 Order Agent — LangGraph stateful workflow for conversational order management.
 
-This is the main patient-facing agent. It handles:
+This is the main user-facing agent. It handles:
 - Natural language order creation
 - Reorder suggestions from history
 - Order status checks
@@ -142,7 +142,7 @@ async def run_order_agent(
 
     Args:
         user_id: User ID
-        user_message: The patient's message
+        user_message: The user's message
         auth_token: Auth token for backend API calls
         backend: Your backend provider
         store: Your data store provider

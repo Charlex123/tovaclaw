@@ -34,7 +34,7 @@ def build_order_tools(
     store: BaseStore,
     notifier: BaseNotifier | None = None,
 ) -> list:
-    """Build the full set of tools for the patient-facing Order Agent.
+    """Build the full set of tools for the user-facing Order Agent.
 
     Args:
         backend: Your backend provider implementation
@@ -50,11 +50,11 @@ def build_order_tools(
         search_radius_km: float = 0,
         alternative_queries: str = "",
     ) -> dict:
-        """Search for products (medicines, medical devices, supplies) available in nearby stores.
+        """Search for products available from nearby providers.
         Results are sorted by proximity when latitude/longitude are provided.
 
         SMART SEARCH: If initial search returns no results, try:
-        1. Generic name variants (e.g., "paracetamol" if "Panadol" not found)
+        1. Alternative name variants
         2. Broader category search
         3. Expand search_radius_km progressively: 5 -> 10 -> 20 -> 35 -> 50 km
 
@@ -159,7 +159,7 @@ def build_order_tools(
         search_radius_km: float = 0,
         alternative_queries: str = "",
     ) -> dict:
-        """Search for services (lab tests, diagnostics, screenings) available nearby.
+        """Search for services available nearby.
 
         Args:
             query: Service name to search for
@@ -333,8 +333,8 @@ def build_order_tools(
 
     @tool
     async def check_drug_safety(drug_name: str) -> dict:
-        """Check a medication for safety concerns including recalls and known
-        adverse effects. Call this before creating an order for medications.
+        """Check an item for safety concerns including recalls and known
+        issues. Call this before creating an order when applicable.
         """
         result = await store.check_drug_safety(drug_name)
         return {
@@ -353,11 +353,11 @@ def build_order_tools(
         latitude: float = 0,
         longitude: float = 0,
     ) -> dict:
-        """Search for available healthcare practitioners (doctors, nurses, etc.).
+        """Search for available service providers with bookable time slots.
         Returns profiles with available time slots and fees.
 
         Args:
-            practitioner_type: Type of practitioner (e.g., "doctor", "nurse")
+            practitioner_type: Type of provider
             specialty: Specialty to filter by
             query: Name to search for
             alternative_specialties: Comma-separated fallback specialties
@@ -520,23 +520,23 @@ def build_order_tools(
         reason: str = "",
         user_address: str = "",
     ) -> dict:
-        """Book an appointment with a practitioner. Only call after user confirmation.
+        """Book an appointment with a service provider. Only call after user confirmation.
 
         Args:
             user_id: The user's ID
             schedule_id: Schedule document ID
             slot_id: Time slot ID
-            professional_id: Practitioner user ID
-            professional_name: Practitioner name
-            appointment_type: Type (e.g., "doctor", "nurse")
+            professional_id: Provider user ID
+            professional_name: Provider name
+            appointment_type: Type of appointment
             specialty: Practitioner's specialty
             amount: Fee amount
             slot_date: Appointment date
             slot_start_time: Start time
             slot_end_time: End time
-            notes: Patient notes
+            notes: User notes
             reason: Reason for visit
-            user_address: Required for home visit appointments
+            user_address: Required for on-site appointments
         """
         # Balance check
         wallet = await store.get_balance(user_id)
@@ -775,7 +775,7 @@ def build_order_tools(
 
     @tool
     async def verify_identity(user_id: str, id_number: str, id_type: str = "", country: str = "") -> dict:
-        """Verify a user's identity document (required for some services like home visits).
+        """Verify a user's identity document (required for some services).
 
         Args:
             user_id: The user's ID
@@ -882,7 +882,7 @@ def build_execution_tools(
 
     @tool
     async def check_drug_safety(drug_name: str) -> dict:
-        """Check drug safety before executing an order."""
+        """Check item safety before executing an order."""
         result = await store.check_drug_safety(drug_name)
         return {
             "drug_name": drug_name,

@@ -16,7 +16,7 @@ class BaseBackend(ABC):
     to a capability that the AI agent can use.
 
     Required methods (core):
-        - search_products: Search your product catalog
+        - search_products: Search your product/item catalog
         - create_order: Create an order
         - execute_order: Execute/fulfill an order
         - cancel_order: Cancel an order
@@ -24,13 +24,13 @@ class BaseBackend(ABC):
         - process_payment: Process a payment
 
     Optional methods (extend for richer features):
-        - search_services: Search for services (lab tests, etc.)
-        - search_practitioners: Search doctors/nurses
+        - search_services: Search for services
+        - search_practitioners: Search service providers with availability
         - book_appointment: Book an appointment
         - cancel_appointment: Cancel an appointment
         - calculate_delivery_fee: Calculate shipping/delivery cost
-        - verify_identity: ID verification (e.g., NIN, SSN)
-        - validate_prescription: OCR/validate prescription documents
+        - verify_identity: ID verification
+        - validate_prescription: Validate uploaded documents
         - get_insurance_providers: List insurance providers
         - link_insurance: Link user's insurance
         - check_insurance: Check user's insurance status
@@ -52,16 +52,15 @@ class BaseBackend(ABC):
         longitude: float = 0,
         **kwargs,
     ) -> list[dict]:
-        """Search your product catalog (medicines, devices, supplies, etc.).
+        """Search your product/item catalog.
 
         Returns a list of dicts, each containing at minimum:
             - id: Product ID
             - name: Product name
             - price: Price per unit
             - in_stock: Whether available
-            - store_name: Store/pharmacy name (optional)
-            - latitude/longitude: Store location (optional, for proximity)
-            - prescription_required: Whether prescription needed (optional)
+            - store_name: Store/provider name (optional)
+            - latitude/longitude: Location (optional, for proximity)
         """
         ...
 
@@ -71,7 +70,7 @@ class BaseBackend(ABC):
 
         Args:
             data: Order details including:
-                - request_type: Type of order (e.g., "medical_items", "lab_tests")
+                - order_type: Type of order
                 - item_id: Product/service ID
                 - item_name: Name
                 - quantity: Amount
@@ -131,34 +130,34 @@ class BaseBackend(ABC):
         longitude: float = 0,
         **kwargs,
     ) -> list[dict]:
-        """Search for services (lab tests, diagnostics, etc.).
+        """Search for services.
 
         Returns list of dicts with: id, name, price, provider_name, etc.
         """
         raise NotImplementedError("Service search not configured")
 
-    # ── Optional: Practitioner Search & Appointments ──────────
+    # ── Optional: Provider Search & Appointments ──────────────
 
     async def search_practitioners(
         self,
-        practitioner_type: str = "doctor",
+        practitioner_type: str = "",
         specialty: str = "",
         query: str = "",
         latitude: float = 0,
         longitude: float = 0,
         **kwargs,
     ) -> list[dict]:
-        """Search for healthcare practitioners (doctors, nurses, etc.).
+        """Search for service providers with availability.
 
         Returns list of dicts with:
             - schedule_id, professional_id, name, specialty
             - available_slots: [{slot_id, date, start_time, end_time, amount}]
             - rating, avatar, etc.
         """
-        raise NotImplementedError("Practitioner search not configured")
+        raise NotImplementedError("Provider search not configured")
 
     async def book_appointment(self, data: dict) -> dict:
-        """Book an appointment with a practitioner.
+        """Book an appointment with a service provider.
 
         Args:
             data: Appointment details (schedule_id, slot_id, professional_id, etc.)
@@ -192,19 +191,19 @@ class BaseBackend(ABC):
         """
         raise NotImplementedError("Identity verification not configured")
 
-    # ── Optional: Prescription ────────────────────────────────
+    # ── Optional: Document Validation ─────────────────────────
 
     async def validate_prescription(self, file_url: str) -> dict:
-        """Validate a prescription document (OCR + validation).
+        """Validate an uploaded document (e.g., prescription, license).
 
-        Returns: {"valid": True/False, "prescription_url": "...", "message": "..."}
+        Returns: {"valid": True/False, "url": "...", "message": "..."}
         """
-        raise NotImplementedError("Prescription validation not configured")
+        raise NotImplementedError("Document validation not configured")
 
     # ── Optional: Insurance ───────────────────────────────────
 
     async def get_insurance_providers(self, **kwargs) -> list[dict]:
-        """List available insurance/HMO providers.
+        """List available insurance providers.
 
         Returns list of dicts with: id, name, description, etc.
         """
@@ -241,7 +240,7 @@ class BaseBackend(ABC):
     # ── Optional: Emergency ───────────────────────────────────
 
     async def send_emergency_notification(self, data: dict) -> dict:
-        """Send emergency notification (e.g., nurse home visit safety alert).
+        """Send emergency notification.
 
         Returns: {"sent": True/False}
         """

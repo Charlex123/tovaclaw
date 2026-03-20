@@ -1,5 +1,5 @@
 """
-Minimal Tova example — in-memory providers for quick testing.
+Minimal Tova example — in-memory e-commerce providers for quick testing.
 
 Run with:
     pip install "tova[anthropic]"
@@ -10,7 +10,7 @@ Then:
     curl -X POST http://localhost:8000/agent/chat \
       -H "Authorization: Bearer test-user-123" \
       -H "Content-Type: application/json" \
-      -d '{"message": "Search for paracetamol"}'
+      -d '{"message": "Find me a laptop under $1000"}'
 """
 
 import uuid
@@ -25,20 +25,20 @@ from tova_core.providers.auth import BaseAuth
 
 
 class InMemoryBackend(BaseBackend):
-    """Simple in-memory backend with sample product data."""
+    """Simple in-memory backend with sample e-commerce product data."""
 
     PRODUCTS = [
-        {"id": "med-001", "name": "Paracetamol 500mg", "price": 5.99, "in_stock": True, "store_name": "HealthPlus Pharmacy", "category": "pain relief", "latitude": 6.45, "longitude": 3.42},
-        {"id": "med-002", "name": "Amoxicillin 250mg", "price": 12.50, "in_stock": True, "store_name": "MedPlus Pharmacy", "category": "antibiotic", "prescription_required": True, "latitude": 6.46, "longitude": 3.43},
-        {"id": "med-003", "name": "Ibuprofen 400mg", "price": 7.99, "in_stock": True, "store_name": "HealthPlus Pharmacy", "category": "pain relief", "latitude": 6.45, "longitude": 3.42},
-        {"id": "dev-001", "name": "Digital Blood Pressure Monitor", "price": 45.00, "in_stock": True, "store_name": "MedEquip Store", "category": "medical device", "latitude": 6.44, "longitude": 3.41},
-        {"id": "dev-002", "name": "Glucometer Kit", "price": 35.00, "in_stock": True, "store_name": "MedEquip Store", "category": "medical device", "latitude": 6.44, "longitude": 3.41},
+        {"id": "prod-001", "name": "MacBook Air M3", "price": 1099.00, "in_stock": True, "store_name": "TechStore", "category": "laptops", "latitude": 40.71, "longitude": -74.01},
+        {"id": "prod-002", "name": "Sony WH-1000XM5 Headphones", "price": 348.00, "in_stock": True, "store_name": "AudioWorld", "category": "audio", "latitude": 40.72, "longitude": -73.99},
+        {"id": "prod-003", "name": "Samsung Galaxy S24", "price": 799.99, "in_stock": True, "store_name": "PhoneHub", "category": "phones", "latitude": 40.73, "longitude": -74.00},
+        {"id": "prod-004", "name": "Logitech MX Master 3S Mouse", "price": 99.99, "in_stock": True, "store_name": "TechStore", "category": "accessories", "latitude": 40.71, "longitude": -74.01},
+        {"id": "prod-005", "name": "iPad Pro 13-inch", "price": 1299.00, "in_stock": True, "store_name": "TechStore", "category": "tablets", "latitude": 40.71, "longitude": -74.01},
     ]
 
     SERVICES = [
-        {"id": "lab-001", "name": "Complete Blood Count (CBC)", "price": 25.00, "provider_name": "LifeLabs", "category": "blood test"},
-        {"id": "lab-002", "name": "Lipid Panel", "price": 35.00, "provider_name": "LifeLabs", "category": "blood test"},
-        {"id": "lab-003", "name": "Malaria Rapid Test", "price": 10.00, "provider_name": "QuickTest Center", "category": "screening"},
+        {"id": "svc-001", "name": "Screen Repair", "price": 149.00, "provider_name": "FixIt Pro", "category": "repair"},
+        {"id": "svc-002", "name": "Data Recovery", "price": 199.00, "provider_name": "DataSafe", "category": "repair"},
+        {"id": "svc-003", "name": "Device Setup & Transfer", "price": 79.00, "provider_name": "TechStore", "category": "setup"},
     ]
 
     _orders = {}
@@ -69,7 +69,7 @@ class InMemoryBackend(BaseBackend):
         return {"success": False, "message": "Order not found"}
 
     async def check_balance(self, user_id):
-        return {"balance": 500.00, "currency": "USD"}
+        return {"balance": 2000.00, "currency": "USD"}
 
     async def process_payment(self, data):
         return {"success": True, "transaction_id": f"txn-{uuid.uuid4().hex[:8]}"}
@@ -87,7 +87,7 @@ class InMemoryStore(BaseStore):
             "name": "Test User",
             "email": "test@example.com",
             "phone": "+1234567890",
-            "address": "123 Main Street",
+            "address": "123 Main Street, New York, NY",
         }
     }
     _conversations: dict[str, dict] = {}
@@ -97,7 +97,7 @@ class InMemoryStore(BaseStore):
         return self._users.get(user_id)
 
     async def get_balance(self, user_id):
-        return {"balance": 500.00, "currency": "USD"}
+        return {"balance": 2000.00, "currency": "USD"}
 
     async def get_orders(self, user_id, status=None, order_type=None, limit=10):
         return [o for o in self._orders.values() if o.get("user_id") == user_id][:limit]
