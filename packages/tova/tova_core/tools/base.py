@@ -114,7 +114,7 @@ class ToolRegistry:
     ) -> None:
         """Register a pre-built LangChain @tool function.
 
-        This allows existing LangChain tools (like the built-in tools
+        This allows existing LangChain tools (like the healthcare tools
         from build_order_tools) to work with the new registry system.
         """
         tool_def = ToolDefinition(

@@ -32,3 +32,37 @@ class BaseNotifier(ABC):
             data: Optional structured data payload
         """
         pass  # Default: do nothing (notifications are optional)
+
+    async def call(
+        self,
+        to_number: str,
+        message: str,
+        priority: str = "normal",
+    ) -> dict:
+        """Make a phone call notification. Optional — override if supported.
+
+        Args:
+            to_number: Phone number in E.164 format
+            message: Message to speak via TTS
+            priority: normal, high, critical
+
+        Returns:
+            {"call_id": str, "status": str}
+        """
+        raise NotImplementedError("Call notifications not configured")
+
+    async def sms(
+        self,
+        to_number: str,
+        message: str,
+    ) -> dict:
+        """Send an SMS notification. Optional — override if supported.
+
+        Args:
+            to_number: Phone number in E.164 format
+            message: SMS text
+
+        Returns:
+            {"message_id": str, "status": str}
+        """
+        raise NotImplementedError("SMS notifications not configured")

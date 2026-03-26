@@ -3,7 +3,7 @@ Execution Agent — Intelligent order fulfillment with error recovery.
 
 Called by the scheduler when an order is due for execution. Handles:
 - Out-of-stock scenarios by finding alternatives
-- Item safety verification
+- Drug safety verification
 - Intelligent error recovery with retry logic
 """
 
@@ -68,10 +68,10 @@ Delivery Address: {order_data.get("delivery_address", "N/A")}
 Cost: {cost}
 
 Steps:
-1. If safety checks apply — run check_drug_safety on "{item_name}"
+1. If this is a medication — run check_drug_safety on "{item_name}"
 2. Check balance for user {user_id} with required amount {cost}
 3. If balance insufficient, report the shortfall and STOP
-4. If safety check flagged, report the concern and STOP
+4. If drug safety flagged, report the concern and STOP
 5. Call execute_order with user_id="{user_id}" and order_id="{order_id}"
 6. If execution fails, search for alternatives and report findings"""
 

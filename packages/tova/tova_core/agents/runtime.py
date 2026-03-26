@@ -1,8 +1,8 @@
 """
 Generic Agent Runtime — runs any agent defined by AgentConfig.
 
-This is the generic agent runtime. Unlike order_agent.py
-(which is a built-in order workflow), this runtime works with any tools
+This is the OpenClaw PiEmbeddedRunner equivalent. Unlike order_agent.py
+(which is hardcoded for healthcare), this runtime works with any tools
 and any system prompt.
 
 Usage:
@@ -27,6 +27,8 @@ from tova_core.llm import build_llm
 from tova_core.models.agent import AgentConfig
 from tova_core.tools.base import ToolRegistry
 from tova_core.providers.store import BaseStore
+from tova_core.memory.brain_box import BrainBox
+from tova_core.learning.engine import SelfLearner
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +48,11 @@ class AgentRuntime:
         self,
         tool_registry: ToolRegistry,
         store: BaseStore,
+        self_learner: SelfLearner | None = None,
     ):
         self.tool_registry = tool_registry
         self.store = store
+        self.self_learner = self_learner or SelfLearner()
         self._checkpointers: dict[str, MemorySaver] = {}
 
     def _get_checkpointer(self, agent_id: str) -> MemorySaver:
@@ -161,6 +165,20 @@ class AgentRuntime:
 
         system_prompt = self._build_system_prompt(agent_config, full_context)
 
+        # Inject Brain Box context for each declared feature
+        if agent_config.brain_boxes and user_id:
+            brain_context_parts = []
+            for feature_name in agent_config.brain_boxes:
+                try:
+                    box = BrainBox(self.store, feature_name)
+                    ctx = await box.build_context(user_id)
+                    if ctx:
+                        brain_context_parts.append(ctx)
+                except Exception as e:
+                    logger.debug(f"Brain box '{feature_name}' context error: {e}")
+            if brain_context_parts:
+                system_prompt += "\n\n" + "\n\n".join(brain_context_parts)
+
         # Build LLM (with per-agent provider/model/key overrides)
         llm = build_llm(
             model_override=agent_config.model_override,
@@ -238,6 +256,24 @@ class AgentRuntime:
                 )
             except Exception as save_err:
                 logger.warning(f"Failed to save conversation: {save_err}")
+
+            # Self-learning: extract knowledge from this turn
+            if self.self_learner and user_id:
+                try:
+                    feature = "general"
+                    if agent_config.brain_boxes:
+                        feature = agent_config.brain_boxes[0]
+                    await self.self_learner.learn_from_turn(
+                        user_id=user_id,
+                        user_message=user_message,
+                        agent_reply=reply,
+                        tools_used=tools_used,
+                        agent_id=agent_config.id or "",
+                        feature=feature,
+                        conversation_id=conversation_id,
+                    )
+                except Exception as learn_err:
+                    logger.debug(f"Self-learning extraction failed (non-critical): {learn_err}")
 
             return {
                 "reply": reply,

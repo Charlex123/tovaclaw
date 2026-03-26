@@ -37,7 +37,7 @@ class NostraBackend(BaseBackend):
         return items
 
     async def search_services(self, query, latitude=0, longitude=0, **kwargs):
-        resp = await self._client.post("/labtest/getlabtestsbysearch", json={
+        resp = await self._client.post("/getlabtestsbysearch", json={
             "searchQuery": query, "latitude": latitude, "longitude": longitude,
         })
         resp.raise_for_status()

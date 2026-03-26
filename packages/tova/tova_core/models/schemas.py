@@ -45,6 +45,76 @@ class ChatResponse(BaseModel):
     tools_used: list[str] = []
 
 
+# ── Agent Management (OpenClaw-style) ─────────────────────
+
+
+class AgentCreateRequest(BaseModel):
+    """Request to create a new agent."""
+    name: str = Field(..., min_length=1, max_length=100)
+    description: str = ""
+    system_prompt: str = ""
+    personality: str = ""
+    greeting: str = ""
+    tools: list[dict] = []  # [{"tool_id": "...", "config": {...}}]
+    workflow: list[dict] = []
+    trigger: dict = Field(default_factory=lambda: {"type": "manual"})
+    model_override: str | None = None
+    metadata: dict | None = None
+
+
+class AgentUpdateRequest(BaseModel):
+    """Request to update an existing agent."""
+    name: str | None = None
+    description: str | None = None
+    system_prompt: str | None = None
+    personality: str | None = None
+    greeting: str | None = None
+    tools: list[dict] | None = None
+    workflow: list[dict] | None = None
+    trigger: dict | None = None
+    status: str | None = None
+    model_override: str | None = None
+    metadata: dict | None = None
+
+
+class AgentResponse(BaseModel):
+    """Single agent in API responses."""
+    id: str
+    name: str
+    description: str = ""
+    status: str = "active"
+    trigger_type: str = "manual"
+    tools: list[dict] = []
+    created_at: str = ""
+    updated_at: str = ""
+
+
+class AgentChatRequest(BaseModel):
+    """Chat with a specific agent."""
+    message: str = Field(..., min_length=1, max_length=4000)
+    conversation_id: str | None = None
+    context: dict | None = None
+
+
+class AgentChatResponse(BaseModel):
+    """Response from agent chat."""
+    reply: str
+    agent_id: str
+    agent_name: str
+    conversation_id: str
+    tools_used: list[str] = []
+    data: dict | None = None
+
+
+class ToolCatalogItem(BaseModel):
+    """A tool available for agents to use."""
+    id: str
+    name: str
+    description: str
+    category: str = "general"
+    parameters: dict = Field(default_factory=dict)
+
+
 class ExecuteRequest(BaseModel):
     order_id: str
 
@@ -52,7 +122,28 @@ class ExecuteRequest(BaseModel):
 class HealthResponse(BaseModel):
     status: str = "ok"
     service: str = "tova"
-    version: str = "0.1.0"
+    version: str = "0.2.0"
+
+
+# ── User Feature / Preference Models ─────────────────────────
+
+class UserFeaturesResponse(BaseModel):
+    """User's enabled features and preferences."""
+    user_id: str
+    enabled_features: list[str] = []
+    preferences: dict = {}
+
+
+class UserPreferencesUpdate(BaseModel):
+    """Update user preferences for a feature."""
+    preferences: dict
+
+
+class BrainBoxResponse(BaseModel):
+    """Brain Box contents for a feature."""
+    feature: str
+    memories: list[dict] = []
+    count: int = 0
 
 
 # ── Agent State (LangGraph) ─────────────────────────────────
@@ -92,7 +183,7 @@ class OrderAgentState(BaseModel):
     # Appointment params
     selected_schedule: dict | None = None
     selected_slot: dict | None = None
-    appointment_type: str | None = None
+    appointment_type: str | None = None  # e.g., "doctor", "nurse"
     professional_name: str = ""
     specialty: str = ""
     reason_for_booking: str = ""

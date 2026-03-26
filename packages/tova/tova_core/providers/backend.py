@@ -16,7 +16,7 @@ class BaseBackend(ABC):
     to a capability that the AI agent can use.
 
     Required methods (core):
-        - search_products: Search your product/item catalog
+        - search_products: Search your product catalog
         - create_order: Create an order
         - execute_order: Execute/fulfill an order
         - cancel_order: Cancel an order
@@ -24,13 +24,13 @@ class BaseBackend(ABC):
         - process_payment: Process a payment
 
     Optional methods (extend for richer features):
-        - search_services: Search for services
-        - search_practitioners: Search service providers with availability
+        - search_services: Search for services (lab tests, etc.)
+        - search_practitioners: Search doctors/nurses
         - book_appointment: Book an appointment
         - cancel_appointment: Cancel an appointment
         - calculate_delivery_fee: Calculate shipping/delivery cost
-        - verify_identity: ID verification
-        - validate_prescription: Validate uploaded documents
+        - verify_identity: ID verification (e.g., NIN, SSN)
+        - validate_prescription: OCR/validate prescription documents
         - get_insurance_providers: List insurance providers
         - link_insurance: Link user's insurance
         - check_insurance: Check user's insurance status
@@ -52,15 +52,16 @@ class BaseBackend(ABC):
         longitude: float = 0,
         **kwargs,
     ) -> list[dict]:
-        """Search your product/item catalog.
+        """Search your product catalog (medicines, devices, supplies, etc.).
 
         Returns a list of dicts, each containing at minimum:
             - id: Product ID
             - name: Product name
             - price: Price per unit
             - in_stock: Whether available
-            - store_name: Store/provider name (optional)
-            - latitude/longitude: Location (optional, for proximity)
+            - store_name: Store/pharmacy name (optional)
+            - latitude/longitude: Store location (optional, for proximity)
+            - prescription_required: Whether prescription needed (optional)
         """
         ...
 
@@ -70,7 +71,7 @@ class BaseBackend(ABC):
 
         Args:
             data: Order details including:
-                - order_type: Type of order
+                - request_type: Type of order (e.g., "medical_items", "lab_tests")
                 - item_id: Product/service ID
                 - item_name: Name
                 - quantity: Amount
@@ -130,34 +131,34 @@ class BaseBackend(ABC):
         longitude: float = 0,
         **kwargs,
     ) -> list[dict]:
-        """Search for services.
+        """Search for services (lab tests, diagnostics, etc.).
 
         Returns list of dicts with: id, name, price, provider_name, etc.
         """
         raise NotImplementedError("Service search not configured")
 
-    # ── Optional: Provider Search & Appointments ──────────────
+    # ── Optional: Practitioner Search & Appointments ──────────
 
     async def search_practitioners(
         self,
-        practitioner_type: str = "",
+        practitioner_type: str = "doctor",
         specialty: str = "",
         query: str = "",
         latitude: float = 0,
         longitude: float = 0,
         **kwargs,
     ) -> list[dict]:
-        """Search for service providers with availability.
+        """Search for healthcare practitioners (doctors, nurses, etc.).
 
         Returns list of dicts with:
             - schedule_id, professional_id, name, specialty
             - available_slots: [{slot_id, date, start_time, end_time, amount}]
             - rating, avatar, etc.
         """
-        raise NotImplementedError("Provider search not configured")
+        raise NotImplementedError("Practitioner search not configured")
 
     async def book_appointment(self, data: dict) -> dict:
-        """Book an appointment with a service provider.
+        """Book an appointment with a practitioner.
 
         Args:
             data: Appointment details (schedule_id, slot_id, professional_id, etc.)
@@ -191,19 +192,19 @@ class BaseBackend(ABC):
         """
         raise NotImplementedError("Identity verification not configured")
 
-    # ── Optional: Document Validation ─────────────────────────
+    # ── Optional: Prescription ────────────────────────────────
 
     async def validate_prescription(self, file_url: str) -> dict:
-        """Validate an uploaded document (e.g., prescription, license).
+        """Validate a prescription document (OCR + validation).
 
-        Returns: {"valid": True/False, "url": "...", "message": "..."}
+        Returns: {"valid": True/False, "prescription_url": "...", "message": "..."}
         """
-        raise NotImplementedError("Document validation not configured")
+        raise NotImplementedError("Prescription validation not configured")
 
     # ── Optional: Insurance ───────────────────────────────────
 
     async def get_insurance_providers(self, **kwargs) -> list[dict]:
-        """List available insurance providers.
+        """List available insurance/HMO providers.
 
         Returns list of dicts with: id, name, description, etc.
         """
@@ -240,11 +241,93 @@ class BaseBackend(ABC):
     # ── Optional: Emergency ───────────────────────────────────
 
     async def send_emergency_notification(self, data: dict) -> dict:
-        """Send emergency notification.
+        """Send emergency notification (e.g., nurse home visit safety alert).
 
         Returns: {"sent": True/False}
         """
         raise NotImplementedError("Emergency notifications not configured")
+
+    # ── Optional: Medical AI Chat ─────────────────────────────
+
+    async def medical_chat(self, message: str, conversation_id: str | None = None) -> dict:
+        """Send a message to the medical AI chat assistant.
+
+        Returns: {"conversationId": "...", "message": {...}, "response": "..."}
+        """
+        raise NotImplementedError("Medical AI chat not configured")
+
+    async def get_medical_profile(self, user_response: str | None = None) -> dict:
+        """Get or build the user's medical profile.
+
+        If user_response is provided, answers the current profile question.
+        If omitted, returns the next missing field/question.
+
+        Returns: {"profileComplete": bool, "missingField": "...", "question": "...", "currentProfile": {...}}
+        """
+        raise NotImplementedError("Medical profile not configured")
+
+    async def analyze_medical_records(self) -> dict:
+        """Trigger AI analysis of uploaded medical records (async job).
+
+        Returns: {"jobId": "...", "status": "pending", "pollUrl": "..."}
+        """
+        raise NotImplementedError("Medical records analysis not configured")
+
+    async def analyze_prescriptions(self) -> dict:
+        """Trigger AI analysis of prescriptions for drug interactions (async job).
+
+        Returns: {"jobId": "...", "status": "pending", "pollUrl": "..."}
+        """
+        raise NotImplementedError("Prescription analysis not configured")
+
+    async def analyze_lab_results(self) -> dict:
+        """Trigger AI analysis of lab test results (async job).
+
+        Returns: {"jobId": "...", "status": "pending", "pollUrl": "..."}
+        """
+        raise NotImplementedError("Lab results analysis not configured")
+
+    async def get_medical_conversations(self) -> dict:
+        """List the user's medical AI chat conversations.
+
+        Returns: {"data": {"conversations": [...]}}
+        """
+        raise NotImplementedError("Medical conversations not configured")
+
+    async def get_medical_conversation_messages(self, conversation_id: str, limit: int = 50) -> dict:
+        """Get messages from a specific medical conversation.
+
+        Returns: {"data": {"messages": [...]}}
+        """
+        raise NotImplementedError("Medical conversation messages not configured")
+
+    async def check_job_status(self, job_id: str) -> dict:
+        """Poll status of an async AI analysis job.
+
+        Returns: {"status": "PENDING|PROCESSING|COMPLETED|FAILED", "progress": int, "data": {...}}
+        """
+        raise NotImplementedError("Job status check not configured")
+
+    async def blood_group_chat(self, message: str, conversation_id: str | None = None, test_results: dict | None = None) -> dict:
+        """Specialized blood group testing guidance chat.
+
+        Returns: Same structure as medical_chat.
+        """
+        raise NotImplementedError("Blood group chat not configured")
+
+    async def analyze_appointment_chats(self) -> dict:
+        """Analyze past appointment conversations for medical insights.
+
+        Returns: {"data": {"analysis": {...}}}
+        """
+        raise NotImplementedError("Appointment chat analysis not configured")
+
+    async def send_medical_chat_email(self, conversation_id: str, email: str) -> dict:
+        """Email a medical chat transcript.
+
+        Returns: {"success": true, "message": "..."}
+        """
+        raise NotImplementedError("Medical chat email not configured")
 
     # ── Lifecycle ─────────────────────────────────────────────
 

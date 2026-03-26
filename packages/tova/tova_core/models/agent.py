@@ -120,6 +120,12 @@ class AgentConfig:
     # ── Memory ─────────────────────────────────────────────────
     memory: AgentMemoryConfig = field(default_factory=AgentMemoryConfig)
 
+    # ── Brain Boxes (per-feature memory namespaces) ──────────
+    # Each entry is a feature name: "todos", "email", "events", "emergency",
+    # "cctv", "vehicles", "datasets", "notes", "files"
+    # The runtime injects context from each brain box into the system prompt.
+    brain_boxes: list[str] = field(default_factory=list)
+
     # ── Workflow (optional multi-step definition) ──────────────
     workflow: list[dict[str, Any]] = field(default_factory=list)
 
@@ -167,6 +173,7 @@ class AgentConfig:
                 "persist_context": self.memory.persist_context,
                 "shared_memory": self.memory.shared_memory,
             },
+            "brain_boxes": self.brain_boxes,
             "workflow": self.workflow,
             "status": self.status.value,
             "created_by": self.created_by,
@@ -222,6 +229,7 @@ class AgentConfig:
             llm_provider=data.get("llm_provider"),
             llm_api_key=data.get("llm_api_key"),
             memory=memory,
+            brain_boxes=data.get("brain_boxes", []),
             workflow=data.get("workflow", []),
             status=AgentStatus(data.get("status", "active")),
             created_by=data.get("created_by", ""),

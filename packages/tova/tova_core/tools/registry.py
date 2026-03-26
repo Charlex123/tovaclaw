@@ -34,7 +34,7 @@ def build_order_tools(
     store: BaseStore,
     notifier: BaseNotifier | None = None,
 ) -> list:
-    """Build the full set of tools for the user-facing Order Agent.
+    """Build the full set of tools for the patient-facing Order Agent.
 
     Args:
         backend: Your backend provider implementation
@@ -50,11 +50,11 @@ def build_order_tools(
         search_radius_km: float = 0,
         alternative_queries: str = "",
     ) -> dict:
-        """Search for products available from nearby providers.
+        """Search for products (medicines, medical devices, supplies) available in nearby stores.
         Results are sorted by proximity when latitude/longitude are provided.
 
         SMART SEARCH: If initial search returns no results, try:
-        1. Alternative name variants
+        1. Generic name variants (e.g., "paracetamol" if "Panadol" not found)
         2. Broader category search
         3. Expand search_radius_km progressively: 5 -> 10 -> 20 -> 35 -> 50 km
 
@@ -159,7 +159,7 @@ def build_order_tools(
         search_radius_km: float = 0,
         alternative_queries: str = "",
     ) -> dict:
-        """Search for services available nearby.
+        """Search for services (lab tests, diagnostics, screenings) available nearby.
 
         Args:
             query: Service name to search for
@@ -333,8 +333,8 @@ def build_order_tools(
 
     @tool
     async def check_drug_safety(drug_name: str) -> dict:
-        """Check an item for safety concerns including recalls and known
-        issues. Call this before creating an order when applicable.
+        """Check a medication for safety concerns including recalls and known
+        adverse effects. Call this before creating an order for medications.
         """
         result = await store.check_drug_safety(drug_name)
         return {
@@ -353,11 +353,11 @@ def build_order_tools(
         latitude: float = 0,
         longitude: float = 0,
     ) -> dict:
-        """Search for available service providers with bookable time slots.
+        """Search for available healthcare practitioners (doctors, nurses, etc.).
         Returns profiles with available time slots and fees.
 
         Args:
-            practitioner_type: Type of provider
+            practitioner_type: Type of practitioner (e.g., "doctor", "nurse")
             specialty: Specialty to filter by
             query: Name to search for
             alternative_specialties: Comma-separated fallback specialties
@@ -520,23 +520,23 @@ def build_order_tools(
         reason: str = "",
         user_address: str = "",
     ) -> dict:
-        """Book an appointment with a service provider. Only call after user confirmation.
+        """Book an appointment with a practitioner. Only call after user confirmation.
 
         Args:
             user_id: The user's ID
             schedule_id: Schedule document ID
             slot_id: Time slot ID
-            professional_id: Provider user ID
-            professional_name: Provider name
-            appointment_type: Type of appointment
+            professional_id: Practitioner user ID
+            professional_name: Practitioner name
+            appointment_type: Type (e.g., "doctor", "nurse")
             specialty: Practitioner's specialty
             amount: Fee amount
             slot_date: Appointment date
             slot_start_time: Start time
             slot_end_time: End time
-            notes: User notes
+            notes: Patient notes
             reason: Reason for visit
-            user_address: Required for on-site appointments
+            user_address: Required for home visit appointments
         """
         # Balance check
         wallet = await store.get_balance(user_id)
@@ -775,7 +775,7 @@ def build_order_tools(
 
     @tool
     async def verify_identity(user_id: str, id_number: str, id_type: str = "", country: str = "") -> dict:
-        """Verify a user's identity document (required for some services).
+        """Verify a user's identity document (required for some services like home visits).
 
         Args:
             user_id: The user's ID
@@ -796,6 +796,315 @@ def build_order_tools(
         except Exception as e:
             return {"verified": False, "error": str(e)}
 
+    # ── Medical AI Chat Tools ─────────────────────────────────
+
+    @tool
+    async def medical_chat(
+        message: str,
+        conversation_id: str = "",
+    ) -> dict:
+        """Send a medical question to the AI medical chat assistant.
+        The backend AI analyzes the message using the user's medical profile,
+        health history, and medical records for personalized responses.
+
+        Use this when the user asks about:
+        - Symptoms, conditions, or health concerns
+        - Medication questions, side effects, or drug interactions
+        - General health advice, prevention, or lifestyle guidance
+        - Interpreting medical results or reports
+        - Any medical/health-related question that is NOT about ordering or booking
+
+        Args:
+            message: The user's medical question or health concern
+            conversation_id: Optional — pass to continue an existing medical conversation
+        """
+        try:
+            result = await backend.medical_chat(
+                message=message,
+                conversation_id=conversation_id or None,
+            )
+            data = result if isinstance(result, dict) else {}
+            return {
+                "success": True,
+                "conversation_id": data.get("conversationId", ""),
+                "response": data.get("response", data.get("message", {}).get("content", "")),
+                "message_id": data.get("message", {}).get("id", ""),
+            }
+        except NotImplementedError:
+            return {"success": False, "error": "Medical AI chat is not available."}
+        except Exception as e:
+            logger.warning(f"Medical chat failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    @tool
+    async def get_medical_profile(
+        user_response: str = "",
+    ) -> dict:
+        """Get the user's medical profile status or answer a profile-building question.
+
+        The medical profile collects: age, gender, existing conditions, medications,
+        lifestyle (smoking, alcohol, exercise), mental health, family history, and symptoms.
+
+        When the profile is complete, the backend automatically runs a comprehensive
+        health analysis with risk predictions (cancer, cardiovascular, diabetes, etc.).
+
+        Call WITHOUT user_response to check what info is still needed.
+        Call WITH user_response to submit the user's answer to the current question.
+
+        Args:
+            user_response: The user's answer to the current profile question (empty to check status)
+        """
+        try:
+            result = await backend.get_medical_profile(
+                user_response=user_response or None,
+            )
+            data = result if isinstance(result, dict) else {}
+            return {
+                "success": True,
+                "profile_complete": data.get("profileComplete", False),
+                "missing_field": data.get("missingField", ""),
+                "question": data.get("question", ""),
+                "current_profile": data.get("currentProfile", {}),
+                "completeness": data.get("currentProfile", {}).get("profileCompleteness", 0),
+            }
+        except NotImplementedError:
+            return {"success": False, "error": "Medical profile is not available."}
+        except Exception as e:
+            logger.warning(f"Medical profile failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    @tool
+    async def analyze_medical_records() -> dict:
+        """Trigger AI analysis of the user's uploaded medical records.
+
+        This is an ASYNC operation — returns a job ID immediately.
+        Use check_analysis_status to poll for results.
+
+        The analysis extracts: health trends, abnormal findings, risk factors,
+        priority actions, and an overall health assessment from all uploaded records.
+        """
+        try:
+            result = await backend.analyze_medical_records()
+            data = result if isinstance(result, dict) else {}
+            status = data.get("status", "pending")
+            # If already analyzed, return cached results directly
+            if data.get("data"):
+                return {
+                    "success": True,
+                    "status": "completed",
+                    "analysis": data["data"],
+                }
+            return {
+                "success": True,
+                "job_id": data.get("jobId", ""),
+                "status": status,
+                "message": data.get("message", "Medical records analysis started."),
+                "hint": "Use check_analysis_status with the job_id to get results.",
+            }
+        except NotImplementedError:
+            return {"success": False, "error": "Medical records analysis is not available."}
+        except Exception as e:
+            logger.warning(f"Medical records analysis failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    @tool
+    async def analyze_prescriptions() -> dict:
+        """Trigger AI analysis of the user's prescriptions.
+
+        Checks for drug interactions, contraindications, side effects,
+        and provides a comprehensive medication safety review.
+
+        This is an ASYNC operation — returns a job ID. Use check_analysis_status to poll.
+        """
+        try:
+            result = await backend.analyze_prescriptions()
+            data = result if isinstance(result, dict) else {}
+            if data.get("data"):
+                return {"success": True, "status": "completed", "analysis": data["data"]}
+            return {
+                "success": True,
+                "job_id": data.get("jobId", ""),
+                "status": data.get("status", "pending"),
+                "message": data.get("message", "Prescription analysis started."),
+                "hint": "Use check_analysis_status with the job_id to get results.",
+            }
+        except NotImplementedError:
+            return {"success": False, "error": "Prescription analysis is not available."}
+        except Exception as e:
+            logger.warning(f"Prescription analysis failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    @tool
+    async def analyze_lab_results() -> dict:
+        """Trigger AI analysis of the user's lab test results.
+
+        Interprets lab values, identifies abnormal/critical results,
+        shows trends, and provides clinical significance with recommendations.
+
+        This is an ASYNC operation — returns a job ID. Use check_analysis_status to poll.
+        """
+        try:
+            result = await backend.analyze_lab_results()
+            data = result if isinstance(result, dict) else {}
+            if data.get("data"):
+                return {"success": True, "status": "completed", "analysis": data["data"]}
+            return {
+                "success": True,
+                "job_id": data.get("jobId", ""),
+                "status": data.get("status", "pending"),
+                "message": data.get("message", "Lab results analysis started."),
+                "hint": "Use check_analysis_status with the job_id to get results.",
+            }
+        except NotImplementedError:
+            return {"success": False, "error": "Lab results analysis is not available."}
+        except Exception as e:
+            logger.warning(f"Lab results analysis failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    @tool
+    async def check_analysis_status(job_id: str) -> dict:
+        """Check the status of an async medical analysis job.
+
+        Call this after triggering analyze_medical_records, analyze_prescriptions,
+        or analyze_lab_results to get the results when processing is complete.
+
+        Args:
+            job_id: The job ID returned by the analysis trigger
+        """
+        try:
+            result = await backend.check_job_status(job_id)
+            data = result if isinstance(result, dict) else {}
+            return {
+                "success": True,
+                "job_id": job_id,
+                "status": data.get("status", "UNKNOWN"),
+                "progress": data.get("progress", 0),
+                "data": data.get("data"),
+                "error": data.get("error"),
+            }
+        except NotImplementedError:
+            return {"success": False, "error": "Job status check is not available."}
+        except Exception as e:
+            logger.warning(f"Job status check failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    @tool
+    async def get_medical_conversations() -> dict:
+        """List the user's past medical AI chat conversations.
+
+        Returns conversation metadata: titles, dates, message counts.
+        Use medical_chat with a conversation_id to resume a past conversation.
+        """
+        try:
+            result = await backend.get_medical_conversations()
+            data = result if isinstance(result, dict) else {}
+            conversations = data.get("data", {}).get("conversations", [])
+            return {
+                "success": True,
+                "count": len(conversations),
+                "conversations": [
+                    {
+                        "conversation_id": c.get("conversationId", ""),
+                        "title": c.get("title", ""),
+                        "updated_at": c.get("updatedAt", ""),
+                        "message_count": c.get("messageCount", 0),
+                    }
+                    for c in conversations[:10]
+                ],
+            }
+        except NotImplementedError:
+            return {"success": False, "error": "Medical conversations not available."}
+        except Exception as e:
+            logger.warning(f"Get medical conversations failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    @tool
+    async def blood_group_chat(
+        message: str,
+        conversation_id: str = "",
+        test_results: str = "",
+    ) -> dict:
+        """Specialized blood group testing guidance chat.
+
+        Provides expert guidance on ABO-Rh blood typing, forward/reverse typing,
+        quality control, transfusion compatibility, and clinical significance.
+
+        Args:
+            message: Question about blood group testing
+            conversation_id: Optional — continue existing conversation
+            test_results: Optional — JSON string of blood test results to analyze
+        """
+        try:
+            import json as _json
+            parsed_results = None
+            if test_results:
+                try:
+                    parsed_results = _json.loads(test_results)
+                except (ValueError, TypeError):
+                    parsed_results = {"raw": test_results}
+
+            result = await backend.blood_group_chat(
+                message=message,
+                conversation_id=conversation_id or None,
+                test_results=parsed_results,
+            )
+            data = result if isinstance(result, dict) else {}
+            return {
+                "success": True,
+                "conversation_id": data.get("conversationId", ""),
+                "response": data.get("response", data.get("message", {}).get("content", "")),
+            }
+        except NotImplementedError:
+            return {"success": False, "error": "Blood group chat is not available."}
+        except Exception as e:
+            logger.warning(f"Blood group chat failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    @tool
+    async def analyze_appointment_chats() -> dict:
+        """Analyze the user's past appointment chat conversations with doctors/nurses.
+
+        Extracts cumulative symptoms, medical topics discussed, clinical
+        recommendations, treatment patterns, and health trends from all
+        appointment conversations.
+        """
+        try:
+            result = await backend.analyze_appointment_chats()
+            data = result if isinstance(result, dict) else {}
+            return {
+                "success": True,
+                "analysis": data.get("data", data),
+            }
+        except NotImplementedError:
+            return {"success": False, "error": "Appointment chat analysis not available."}
+        except Exception as e:
+            logger.warning(f"Appointment chat analysis failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    @tool
+    async def send_medical_chat_email(
+        conversation_id: str,
+        email: str,
+    ) -> dict:
+        """Email a medical chat transcript to the user or their doctor.
+
+        Args:
+            conversation_id: The medical conversation to send
+            email: Recipient email address
+        """
+        try:
+            result = await backend.send_medical_chat_email(conversation_id, email)
+            data = result if isinstance(result, dict) else {}
+            return {
+                "success": data.get("success", True),
+                "message": data.get("message", "Email sent successfully."),
+            }
+        except NotImplementedError:
+            return {"success": False, "error": "Medical chat email is not available."}
+        except Exception as e:
+            logger.warning(f"Send medical chat email failed: {e}")
+            return {"success": False, "error": str(e)}
+
     # Build the tool lists
     order_tools = [
         search_products,
@@ -814,6 +1123,17 @@ def build_order_tools(
         verify_identity,
         create_order,
         cancel_order,
+        # Medical AI Chat tools
+        medical_chat,
+        get_medical_profile,
+        analyze_medical_records,
+        analyze_prescriptions,
+        analyze_lab_results,
+        check_analysis_status,
+        get_medical_conversations,
+        blood_group_chat,
+        analyze_appointment_chats,
+        send_medical_chat_email,
     ]
 
     return order_tools
@@ -882,7 +1202,7 @@ def build_execution_tools(
 
     @tool
     async def check_drug_safety(drug_name: str) -> dict:
-        """Check item safety before executing an order."""
+        """Check drug safety before executing an order."""
         result = await store.check_drug_safety(drug_name)
         return {
             "drug_name": drug_name,
@@ -907,3 +1227,23 @@ def build_execution_tools(
         check_drug_safety,
         execute_order,
     ]
+
+
+# ── Re-export new tool builders for convenience ────────────────
+# Each module follows the same closure-over-providers pattern.
+
+from tova_core.tools.dataset_tools import build_dataset_tools      # noqa: E402, F401
+from tova_core.tools.todo_tools import build_todo_tools            # noqa: E402, F401
+from tova_core.tools.notes_tools import build_notes_tools          # noqa: E402, F401
+from tova_core.tools.email_tools import build_email_tools          # noqa: E402, F401
+from tova_core.tools.event_tools import build_event_tools          # noqa: E402, F401
+from tova_core.tools.emergency_tools import build_emergency_tools  # noqa: E402, F401
+from tova_core.tools.phone_tools import build_phone_tools          # noqa: E402, F401
+from tova_core.tools.cctv_tools import build_cctv_tools            # noqa: E402, F401
+from tova_core.tools.vehicle_tools import build_vehicle_tools      # noqa: E402, F401
+from tova_core.tools.file_tools import build_file_tools            # noqa: E402, F401
+from tova_core.tools.agent_tools import build_agent_tools          # noqa: E402, F401
+from tova_core.tools.travel_tools import build_travel_tools        # noqa: E402, F401
+from tova_core.tools.web_search_tools import build_web_search_tools  # noqa: E402, F401
+from tova_core.tools.workspace_tools import build_workspace_tools    # noqa: E402, F401
+from tova_core.tools.workforce_tools import build_workforce_tools    # noqa: E402, F401

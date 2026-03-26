@@ -1,52 +1,84 @@
 # Tova
 
-Open-source multi-agent AI framework built with [LangGraph](https://github.com/langchain-ai/langgraph). Pluggable providers, multi-LLM support, and a flexible tool system let you build conversational AI for **any domain** — e-commerce, customer support, healthcare, fintech, or anything else.
+Open-source AI agent framework for building intelligent assistants. Built with [LangGraph](https://github.com/langchain-ai/langgraph) and designed to work with **any** backend, database, and LLM provider.
 
-## Features
+Tova is a conversational AI platform that can handle:
+- **Healthcare** — medication search, appointment booking, order management
+- **Travel** — flights, trains, buses, car hire with live price search and booking links
+- **Email** — IMAP/SMTP email management with AI categorization and drafting
+- **Productivity** — todos, notes, summarization, event planning
+- **Enterprise** — CCTV monitoring, vehicle/fleet tracking, emergency management
+- **Custom AI Training** — upload any dataset (JSON, CSV, PDF, TXT) and query it via RAG
 
-- **Custom agents** — Define agents with their own tools, prompts, personality, and workflows via `AgentConfig`
-- **Pluggable providers** — Implement a few interfaces to connect any backend, database, and auth system
-- **Multi-LLM support** — Claude, GPT, Gemini, or local models (Ollama, vLLM, LM Studio)
-- **Tool registry** — Register your own tools and attach them to any agent
-- **Agent memory** — Persistent context across conversations
-- **Scheduler** — Cron-based and event-driven agent execution
-- **Built-in order & appointment workflows** — Ready-to-use agents for common patterns
+Every feature is modular. Enable only what you need — zero overhead for unused modules.
 
 ## How It Works
 
-Tova uses a **provider pattern** — you implement a few interfaces to connect agents to your own systems:
+Tova uses a **provider pattern** — implement a few interfaces to connect the AI agent to your own systems:
 
 ```
-Your App → Tova Agents → Your Backend (via providers)
+Your App → Tova Agent → Your Backend (via providers)
                 ↓
            Your Database (via providers)
 ```
 
-### Providers You Implement
+### Core Providers
 
 | Provider | Purpose | Required? |
 |----------|---------|-----------|
-| `BaseBackend` | Write operations — create orders, book appointments, process payments | Yes |
+| `BaseBackend` | Write operations — create orders, book appointments | Yes |
 | `BaseStore` | Read operations — user profiles, order history, conversations | Yes |
 | `BaseAuth` | Token verification — verify user identity | Yes |
 | `BaseNotifier` | Push notifications — notify users of events | No |
 
+### Feature Providers (Optional)
+
+| Provider | Purpose |
+|----------|---------|
+| `BaseTravelProvider` | Flight, train, bus, car hire search |
+| `BaseEmailProvider` | Email management (IMAP/SMTP) |
+| `BaseCalendarProvider` | Calendar and event management |
+| `BaseTelephony` | Phone calls and SMS (Twilio) |
+| `BaseVideoStream` | CCTV / video monitoring |
+| `BaseGeolocationProvider` | Vehicle/fleet GPS tracking |
+| `BaseVectorStore` | Vector embeddings for RAG |
+| `BaseFileStore` | File upload and storage |
+
+Features auto-enable when their provider is supplied to `create_app()`.
+
 ## Quick Start
 
-### 1. Install
+### Option 1: Standalone Mode (No Code Required)
+
+Run Tova instantly with just environment variables:
 
 ```bash
 pip install tova
 
-# With your preferred LLM provider
-pip install "tova[anthropic]"   # Claude
-pip install "tova[openai]"      # GPT
-pip install "tova[google]"      # Gemini
+# Run with Claude
+ANTHROPIC_API_KEY=sk-ant-... python -m tova_core.standalone
+
+# Run with GPT
+LLM_PROVIDER=openai OPENAI_API_KEY=sk-... python -m tova_core.standalone
+
+# Run with Gemini
+LLM_PROVIDER=google GOOGLE_API_KEY=... python -m tova_core.standalone
+
+# Run with local LLM (Ollama, vLLM, LM Studio)
+LLM_PROVIDER=local LOCAL_LLM_BASE_URL=http://localhost:11434/v1 python -m tova_core.standalone
 ```
 
-### 2. Implement Providers
+Standalone mode includes:
+- SQLite storage (no database setup needed)
+- Session-based auth (no signup required)
+- Travel search (flights, trains, buses)
+- Email management (connect via `/auth/email/connect`)
+- All productivity tools (todos, notes, events)
+
+### Option 2: Custom Integration
 
 ```python
+from tova_core.app import create_app
 from tova_core.providers.backend import BaseBackend
 from tova_core.providers.store import BaseStore
 from tova_core.providers.auth import BaseAuth
@@ -64,24 +96,9 @@ class MyBackend(BaseBackend):
     async def cancel_order(self, order_id, reason=""):
         return await my_api.cancel_order(order_id, reason)
 
-    async def check_balance(self, user_id):
-        return {"balance": 100.00, "currency": "USD"}
-
-    async def process_payment(self, data):
-        return await my_payment.charge(data)
-
 class MyStore(BaseStore):
     async def get_user(self, user_id):
         return await my_db.get_user(user_id)
-
-    async def get_balance(self, user_id):
-        return await my_db.get_wallet(user_id)
-
-    async def get_orders(self, user_id, **kwargs):
-        return await my_db.list_orders(user_id)
-
-    async def get_order(self, order_id):
-        return await my_db.get_order(order_id)
 
     async def save_conversation(self, conversation_id, user_id, messages, title=""):
         await my_db.upsert_conversation(conversation_id, user_id, messages, title)
@@ -99,12 +116,6 @@ class MyAuth(BaseAuth):
     async def verify_token(self, token):
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         return payload["user_id"]
-```
-
-### 3. Create and Run
-
-```python
-from tova_core.app import create_app
 
 app = create_app(
     backend_factory=lambda token: MyBackend(auth_token=token),
@@ -115,69 +126,82 @@ app = create_app(
 # Run with: uvicorn main:app --port 8000
 ```
 
-### 4. Chat
+### Adding Feature Providers
 
-```bash
-curl -X POST http://localhost:8000/agent/chat \
-  -H "Authorization: Bearer <your-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Find me a laptop under $1000"}'
+```python
+from tova_core.providers.builtin.travel_search import FlightSearchProvider
+
+app = create_app(
+    backend_factory=lambda token: MyBackend(token),
+    store=MyStore(),
+    auth=MyAuth(),
+    travel_provider=FlightSearchProvider(),
+)
 ```
+
+## Authentication Modes
+
+Standalone mode supports four auth modes via `TOVA_AUTH`:
+
+| Mode | Use Case | Config |
+|------|----------|--------|
+| `session` (default) | Web apps — cookie-based, no signup required | Auto-configured |
+| `none` | Local/dev — single fixed user | `TOVA_USER_ID=local_user` |
+| `apikey` | API access — key:user pairs | `TOVA_API_KEYS=key1:alice,key2:bob` |
+| `jwt` | Production — Auth0, Supabase, etc. | `TOVA_JWT_SECRET=...` |
 
 ## Custom Agents
 
-Define agents with their own tools, personality, and triggers:
+Define specialized AI agents with their own tools, prompts, and behaviors:
 
 ```python
-from tova_core.models.agent import AgentConfig, AgentTrigger, TriggerType, ToolConfig
-from tova_core.agents.runtime import AgentRuntime
-from tova_core.tools.base import ToolRegistry
+from tova_core.models.agent import AgentConfig
 
-# Register your tools
-registry = ToolRegistry()
-registry.register(my_search_tool)
-registry.register(my_order_tool)
-
-# Define an agent
 agent = AgentConfig(
-    name="SupportAgent",
-    description="Handles customer support inquiries",
-    system_prompt="You are a customer support agent...",
-    tools=[ToolConfig(tool_name="search_products"), ToolConfig(tool_name="lookup_order")],
-    trigger=AgentTrigger(type=TriggerType.MANUAL),
+    name="travel-assistant",
+    system_prompt="You help users find and compare travel options...",
+    tools=["search_flights", "search_trains", "compare_transport"],
 )
-
-# Run it
-runtime = AgentRuntime(tool_registry=registry, store=my_store)
-result = await runtime.run(agent_config=agent, user_message="Where is my order?", user_id="user_123")
-```
-
-## Scheduler
-
-Run agents on cron schedules or in response to events:
-
-```python
-from tova_core.scheduler.engine import AgentScheduler
-
-scheduler = AgentScheduler(runtime=runtime)
-scheduler.register(weekly_digest_agent)
-scheduler.register(ticket_triage_agent)
-
-await scheduler.start()
-
-# Or trigger manually
-await scheduler.trigger_event("ticket_created", {"ticket_id": "T-1234"})
 ```
 
 ## API Endpoints
 
+### Core
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/agent/chat` | POST | Conversational agent endpoint |
-| `/agent/execute` | POST | Execute a scheduled order |
-| `/agent/conversations` | GET | List user's conversations |
+| `/agent/chat` | POST | Conversational AI agent |
+| `/agent/execute` | POST | Execute a scheduled action |
+| `/agent/conversations` | GET | List conversations |
 | `/agent/conversation/{id}` | GET | Get conversation history |
 | `/health` | GET | Health check |
+
+### Auth & Email
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/auth/email/connect` | POST | Connect email (IMAP credentials) |
+| `/auth/email/status` | GET | Check email connection status |
+| `/auth/email/disconnect` | POST | Disconnect email |
+| `/auth/email/providers` | GET | List supported email providers |
+
+## Agent Tools
+
+Tova comes with 70+ tools that agents can use:
+
+| Category | Tools |
+|----------|-------|
+| **Healthcare** | Search products, create/execute/cancel orders, book appointments, check balance |
+| **Travel** | Search flights/trains/buses/car hire, compare transport, find nearest airports/stations, save travel plans |
+| **Email** | List/read/categorize/draft/send emails, summarize threads |
+| **Todos** | Create/list/update/complete todos, suggest priorities |
+| **Notes** | Create notes, summarize text/URLs/documents, extract key points |
+| **Events** | Create/list/update events, suggest times, send reminders |
+| **Emergency** | Report/list/escalate emergencies, trigger calls, send alerts |
+| **CCTV** | List cameras, get snapshots, analyze frames, detect anomalies |
+| **Vehicles** | Track positions, fleet overview, geofence violations, route calculation |
+| **Datasets** | Ingest documents, query datasets (RAG), list datasets |
+| **Phone** | Make calls, check call status, send SMS |
 
 ## LLM Providers
 
@@ -185,17 +209,14 @@ await scheduler.trigger_event("ticket_created", {"ticket_id": "T-1234"})
 # Claude (default)
 LLM_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
-AGENT_MODEL=claude-sonnet-4-6
 
 # GPT
 LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
-AGENT_MODEL=gpt-4o
 
 # Gemini
 LLM_PROVIDER=google
 GOOGLE_API_KEY=...
-AGENT_MODEL=gemini-2.0-flash
 
 # Local (Ollama, vLLM, LM Studio)
 LLM_PROVIDER=local
@@ -203,41 +224,69 @@ LOCAL_LLM_BASE_URL=http://localhost:11434/v1
 AGENT_MODEL=llama3.3
 ```
 
-## Examples
-
-- **[Minimal](examples/minimal/)** — In-memory e-commerce example for quick testing
-- **[Healthcare](examples/healthcare/)** — Healthcare order automation with Firestore + Node.js backend
-
 ## Architecture
 
 ```
 tova_core/
-├── providers/          # Abstract interfaces you implement
-│   ├── backend.py      # BaseBackend — write operations
-│   ├── store.py        # BaseStore — read operations
-│   ├── auth.py         # BaseAuth — token verification
-│   └── notifier.py     # BaseNotifier — notifications (optional)
+├── providers/              # Abstract interfaces
+│   ├── backend.py          # BaseBackend — write operations
+│   ├── store.py            # BaseStore — read operations
+│   ├── auth.py             # BaseAuth — authentication
+│   ├── notifier.py         # BaseNotifier — notifications
+│   ├── travel.py           # BaseTravelProvider — transport search
+│   ├── email.py            # BaseEmailProvider — email management
+│   ├── calendar.py         # BaseCalendarProvider — events
+│   ├── telephony.py        # BaseTelephony — calls & SMS
+│   ├── video_stream.py     # BaseVideoStream — CCTV
+│   ├── geolocation.py      # BaseGeolocationProvider — GPS tracking
+│   ├── vector_store.py     # BaseVectorStore — embeddings
+│   ├── file_store.py       # BaseFileStore — file storage
+│   └── builtin/            # Built-in implementations
+│       ├── store.py        # SQLiteStore
+│       ├── auth.py         # Session, JWT, APIKey, NoAuth
+│       ├── travel_search.py # SerpAPI + Amadeus flight search
+│       ├── imap_email.py   # IMAP/SMTP email (encrypted credentials)
+│       └── ...
 ├── agents/
-│   ├── runtime.py      # AgentRuntime — runs any agent from AgentConfig
-│   ├── order_agent.py  # Built-in order management agent
-│   └── execution_agent.py  # Built-in order fulfillment agent
-├── models/
-│   ├── agent.py        # AgentConfig — full agent definition
-│   └── schemas.py      # Pydantic request/response models
-├── tools/
-│   ├── base.py         # ToolRegistry + ToolDefinition
-│   ├── registry.py     # Built-in order/service tools
-│   └── helpers.py      # Proximity, date, and utility helpers
-├── memory/
-│   └── store.py        # AgentMemory — persistent context
-├── scheduler/
-│   └── engine.py       # AgentScheduler — cron + event triggers
-├── prompts/
-│   └── default.py      # Default system prompts (customizable)
-├── app.py              # FastAPI application factory
-├── config.py           # Settings (env vars)
-└── llm.py              # LLM provider factory
+│   ├── order_agent.py      # Patient-facing conversational agent
+│   ├── execution_agent.py  # Scheduler-facing execution agent
+│   └── runtime.py          # Agent runtime with Brain Box injection
+├── tools/                  # 70+ LangGraph tools
+│   ├── registry.py         # Tool registry — builds tools from providers
+│   ├── travel_tools.py     # Flights, trains, buses, car hire
+│   ├── email_tools.py      # Email management
+│   ├── todo_tools.py       # Task management
+│   ├── notes_tools.py      # Notes & summarization
+│   ├── event_tools.py      # Calendar events
+│   ├── emergency_tools.py  # Emergency tracking
+│   ├── cctv_tools.py       # Video monitoring
+│   ├── vehicle_tools.py    # Fleet tracking
+│   ├── dataset_tools.py    # RAG dataset queries
+│   └── ...
+├── rag/                    # RAG pipeline
+│   ├── ingest.py           # Document ingestion (PDF, CSV, JSON, TXT)
+│   ├── chunker.py          # Text splitting
+│   ├── embedder.py         # Multi-provider embeddings
+│   └── retriever.py        # Vector similarity search
+├── memory/                 # Brain Box — per-feature per-user memory
+├── realtime/               # Background workers
+│   ├── emergency_monitor.py
+│   ├── video_processor.py
+│   └── gps_tracker.py
+├── models/                 # Pydantic schemas
+├── prompts/                # System prompts (customizable)
+├── scheduler/              # Task scheduling
+├── crypto.py               # Fernet encryption for credentials
+├── standalone.py           # Zero-code launcher
+├── app.py                  # FastAPI application factory
+├── config.py               # Settings (env vars)
+└── llm.py                  # LLM provider factory
 ```
+
+## Examples
+
+- **[Minimal](examples/minimal/)** — In-memory providers for quick testing
+- **[Nostra Health](examples/nostra/)** — Production implementation with Firestore + Node.js backend
 
 ## License
 
