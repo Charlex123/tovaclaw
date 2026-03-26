@@ -16,8 +16,22 @@ app = create_app(
     backend_factory=lambda token: MyBackend(auth_token=token),
     store=MyStore(),
     auth=MyAuth(),
+    # Optional feature providers
+    email_provider=MyEmail(),
+    travel_provider=MyTravel(),
+    telephony_provider=MyTwilio(),
 )
 
+# Run with: uvicorn main:app --port 8000`;
+
+const pythonStandalone = `# Zero-config standalone mode — no custom providers needed
+from tova_core.standalone import create_standalone_app
+
+app = create_standalone_app(llm_provider="anthropic")
+
+# Includes: SQLite store, session auth, travel search,
+# email management, todos, notes, calendar, web search,
+# Brain Box memory, RAG, and 70+ built-in tools
 # Run with: uvicorn main:app --port 8000`;
 
 const nodeQuickStart = `import { TovaClient } from "@tovaclaw/sdk";
@@ -118,9 +132,22 @@ export default function Installation() {
               transition={{ duration: 0.5, delay: 0.2 }}
             >
               <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
-                Quick start
+                Quick start — custom providers
               </h3>
               <CodeBlock code={pythonQuickStart} language="python" filename="main.py" />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="mt-8"
+            >
+              <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
+                Or use standalone mode
+              </h3>
+              <CodeBlock code={pythonStandalone} language="python" filename="standalone.py" />
             </motion.div>
           </>
         ) : (

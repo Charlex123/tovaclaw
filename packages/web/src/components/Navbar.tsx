@@ -4,11 +4,11 @@ import { Github, Menu, X } from "lucide-react";
 
 const navLinks = [
   { label: "Features", href: "#features" },
+  { label: "Use Cases", href: "#use-cases" },
   { label: "Install", href: "#installation" },
   { label: "Architecture", href: "#architecture" },
   { label: "API", href: "#api" },
   { label: "Examples", href: "#examples" },
-  { label: "SDK", href: "#sdk" },
 ];
 
 export default function Navbar() {
@@ -65,10 +65,10 @@ export default function Navbar() {
             GitHub
           </a>
           <a
-            href="#installation"
+            href="/app"
             className="hidden md:block px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg hover:from-blue-500 hover:to-cyan-500 transition-all"
           >
-            Get Started
+            Try it Live
           </a>
 
           <button
@@ -107,11 +107,11 @@ export default function Navbar() {
               GitHub
             </a>
             <a
-              href="#installation"
+              href="/app"
               onClick={() => setMobileOpen(false)}
               className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg"
             >
-              Get Started
+              Try it Live
             </a>
           </div>
         </motion.div>

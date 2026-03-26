@@ -56,9 +56,9 @@ export default function Hero() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1] mb-6"
         >
-          AI agents for{" "}
+          AI agents that{" "}
           <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
-            any system
+            learn & act
           </span>
         </motion.h1>
 
@@ -68,10 +68,10 @@ export default function Hero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg sm:text-xl text-neutral-400 max-w-2xl mx-auto mb-10 leading-relaxed"
         >
-          TovaClaw is an open-source agent framework built with LangGraph. Pluggable
-          providers, multi-LLM support, and a flexible tool system let you build
-          conversational AI for e-commerce, customer support, fintech,
-          or any domain.
+          The open-source multi-agent framework that learns. 70+ tools,
+          15 pluggable providers, self-training ML engine, Brain Box memory,
+          RAG, real-time monitoring, and encrypted credential storage.
+          Build AI agents for any domain in minutes.
         </motion.p>
 
         <motion.div
@@ -113,9 +113,14 @@ export default function Hero() {
             <div>
               <span className="text-neutral-500">$</span>{" "}
               <span className="text-cyan-400">pip install</span>{" "}
-              <span className="text-green-400">"tovaclaw[anthropic]"</span>
+              <span className="text-green-400">"tovaclaw[all]"</span>
             </div>
-            <div className="mt-2 text-neutral-500"># Start building in minutes</div>
+            <div className="mt-1">
+              <span className="text-neutral-500">$</span>{" "}
+              <span className="text-cyan-400">tova</span>{" "}
+              <span className="text-yellow-400">--standalone</span>
+            </div>
+            <div className="mt-2 text-neutral-500"># SQLite + 70+ tools + self-learning + encrypted storage</div>
           </div>
           {/* Glow behind terminal */}
           <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 rounded-2xl -z-10 blur-xl" />

@@ -5,19 +5,26 @@ This assembles a complete Tova application from environment variables.
 No Python code required. Just configure and run.
 
 Usage:
-    # Default (anonymous sessions, no signup required):
-    ANTHROPIC_API_KEY=sk-... python -m tova_core.standalone
+    # Default — uses local Ollama models (no API key needed):
+    python -m tova_core.standalone
 
-    # Single-user / local mode:
-    TOVA_AUTH=none ANTHROPIC_API_KEY=sk-... python -m tova_core.standalone
+    # Single-user / local mode (simplest):
+    TOVA_AUTH=none python -m tova_core.standalone
+
+    # With Anthropic Claude (optional, for users who prefer proprietary):
+    LLM_PROVIDER=anthropic ANTHROPIC_API_KEY=sk-... python -m tova_core.standalone
 
     # With API key auth:
     TOVA_AUTH=apikey TOVA_API_KEYS=tova_abc123:alice,tova_def456:bob \
-    ANTHROPIC_API_KEY=sk-... python -m tova_core.standalone
+    python -m tova_core.standalone
 
     # With JWT auth (Auth0, Supabase, etc.):
-    TOVA_AUTH=jwt TOVA_JWT_SECRET=your-secret \
-    ANTHROPIC_API_KEY=sk-... python -m tova_core.standalone
+    TOVA_AUTH=jwt TOVA_JWT_SECRET=your-secret python -m tova_core.standalone
+
+Prerequisites (for default local mode):
+    1. Install Ollama: https://ollama.com/download
+    2. Pull the default model: ollama pull qwen3:32b
+    3. Start Ollama: ollama serve
 
 Environment Variables:
     TOVA_AUTH          Auth mode: session (default), none, apikey, jwt
@@ -489,14 +496,20 @@ def main():
     port = int(os.environ.get("TOVA_PORT", "8000"))
     log_level = os.environ.get("LOG_LEVEL", "info").lower()
 
+    from tova_core.config import get_settings as _get_settings
+    _s = _get_settings()
+    _llm_line = f"{_s.llm_provider} / {_s.agent_model}"
+
     print(f"""
 ╔══════════════════════════════════════════╗
 ║           Tova AI Agent Platform         ║
 ║                                          ║
 ║  Auth:    {os.environ.get('TOVA_AUTH', 'session'):<32}║
+║  LLM:     {_llm_line:<32}║
 ║  Store:   SQLite                         ║
 ║  URL:     http://{host}:{port:<21}║
 ║  Docs:    http://{host}:{port}/docs{' ' * 13}║
+║  Models:  http://{host}:{port}/models{' ' * 9}║
 ║                                          ║
 ║  Providers (auto-detected):              ║"""
     )

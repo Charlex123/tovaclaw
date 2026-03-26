@@ -76,7 +76,7 @@ export default function SdkSection() {
             Node.js SDK
           </h2>
           <p className="text-neutral-400 max-w-xl mx-auto">
-            A lightweight TypeScript client that wraps every Tova endpoint.
+            A lightweight TypeScript client that wraps every TovaClaw endpoint.
             Install it, pass a token, and start building.
           </p>
         </motion.div>

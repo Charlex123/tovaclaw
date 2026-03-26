@@ -27,6 +27,7 @@ class ModelCategory(str, Enum):
 class ModelStrength(str, Enum):
     TOP_OVERALL = "top_overall"
     MATH_CODING = "math_coding"
+    CODING = "coding"
     AGENTIC = "agentic"
     INSTRUCTION_FOLLOWING = "instruction_following"
     GENERAL_KNOWLEDGE = "general_knowledge"
@@ -34,6 +35,7 @@ class ModelStrength(str, Enum):
     SPATIAL_3D = "spatial_3d"
     MULTIMODAL_SPEED = "multimodal_speed"
     ON_DEVICE = "on_device"
+    CODING_ON_DEVICE = "coding_on_device"
 
 
 @dataclass
@@ -195,6 +197,197 @@ QWEN3_235B = ModelSpec(
 )
 
 
+# ── Coding Models ────────────────────────────────────────────────────────
+
+QWEN2_5_CODER_32B = ModelSpec(
+    id="qwen2.5-coder-32b",
+    name="Qwen2.5-Coder 32B Instruct",
+    category=ModelCategory.REASONING,
+    strength=ModelStrength.CODING,
+    description=(
+        "Best open-source coding model. Outperforms GPT-4o on coding benchmarks. "
+        "Supports 92 programming languages. Excellent at code generation, "
+        "debugging, refactoring, and code review."
+    ),
+    ollama_tag="qwen2.5-coder:32b-instruct",
+    hf_repo="Qwen/Qwen2.5-Coder-32B-Instruct",
+    vllm_model="Qwen/Qwen2.5-Coder-32B-Instruct",
+    min_vram_gb=20,
+    recommended_vram_gb=24,
+    parameters_b=32,
+    supports_thinking=True,
+    supports_tool_calling=True,
+    max_context_length=131072,
+    fine_tune_base=True,
+    lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    benchmark_scores={"humaneval": 0.92, "mbpp": 0.90, "coding": 0.91, "mmlu": 0.83},
+)
+
+QWEN2_5_CODER_7B = ModelSpec(
+    id="qwen2.5-coder-7b",
+    name="Qwen2.5-Coder 7B Instruct",
+    category=ModelCategory.REASONING,
+    strength=ModelStrength.CODING_ON_DEVICE,
+    description=(
+        "Compact coding model that runs on consumer hardware. "
+        "Strong coding capability for its size — outperforms much larger models."
+    ),
+    ollama_tag="qwen2.5-coder:7b-instruct",
+    hf_repo="Qwen/Qwen2.5-Coder-7B-Instruct",
+    vllm_model="Qwen/Qwen2.5-Coder-7B-Instruct",
+    min_vram_gb=6,
+    recommended_vram_gb=8,
+    parameters_b=7,
+    supports_thinking=True,
+    supports_tool_calling=True,
+    max_context_length=131072,
+    fine_tune_base=True,
+    lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    benchmark_scores={"humaneval": 0.83, "mbpp": 0.80, "coding": 0.82},
+)
+
+DEEPSEEK_CODER_V2 = ModelSpec(
+    id="deepseek-coder-v2",
+    name="DeepSeek-Coder-V2 236B",
+    category=ModelCategory.REASONING,
+    strength=ModelStrength.CODING,
+    description=(
+        "MoE coding specialist from DeepSeek. 236B total parameters with "
+        "21B active. Excellent at code generation, math, and reasoning."
+    ),
+    ollama_tag="deepseek-coder-v2:236b",
+    hf_repo="deepseek-ai/DeepSeek-Coder-V2-Instruct",
+    vllm_model="deepseek-ai/DeepSeek-Coder-V2-Instruct",
+    min_vram_gb=16,
+    recommended_vram_gb=48,
+    parameters_b=236,  # MoE, active ~21B
+    quantization="AWQ",
+    supports_thinking=True,
+    supports_tool_calling=True,
+    max_context_length=131072,
+    fine_tune_base=True,
+    lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    benchmark_scores={"humaneval": 0.90, "mbpp": 0.88, "coding": 0.89, "math": 0.87},
+)
+
+CODESTRAL_25_01 = ModelSpec(
+    id="codestral-25.01",
+    name="Codestral 25.01",
+    category=ModelCategory.REASONING,
+    strength=ModelStrength.CODING,
+    description=(
+        "Mistral's flagship code model. 32B parameters with 256K context. "
+        "Optimized for code completion, generation, and instruction following."
+    ),
+    ollama_tag="codestral:latest",
+    hf_repo="mistralai/Codestral-25.01",
+    vllm_model="mistralai/Codestral-25.01",
+    min_vram_gb=20,
+    recommended_vram_gb=24,
+    parameters_b=32,
+    supports_thinking=False,
+    supports_tool_calling=True,
+    max_context_length=262144,
+    fine_tune_base=True,
+    lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+    benchmark_scores={"humaneval": 0.88, "mbpp": 0.87, "coding": 0.88},
+)
+
+STARCODER2_15B = ModelSpec(
+    id="starcoder2-15b",
+    name="StarCoder2 15B",
+    category=ModelCategory.REASONING,
+    strength=ModelStrength.CODING_ON_DEVICE,
+    description=(
+        "Efficient code model from BigCode. Trained on The Stack v2 — "
+        "619 programming languages. Best coding model under 16B params."
+    ),
+    ollama_tag="starcoder2:15b",
+    hf_repo="bigcode/starcoder2-15b-instruct",
+    vllm_model="bigcode/starcoder2-15b-instruct",
+    min_vram_gb=10,
+    recommended_vram_gb=16,
+    parameters_b=15,
+    supports_thinking=False,
+    supports_tool_calling=True,
+    max_context_length=16384,
+    fine_tune_base=True,
+    lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+    benchmark_scores={"humaneval": 0.76, "mbpp": 0.74, "coding": 0.75},
+)
+
+DEVSTRAL = ModelSpec(
+    id="devstral",
+    name="Devstral Small",
+    category=ModelCategory.REASONING,
+    strength=ModelStrength.CODING,
+    description=(
+        "Mistral's agentic coding model. Specifically designed for AI coding agents — "
+        "excels at tool use, multi-file editing, and codebase navigation. "
+        "SWE-bench verified score of 46.8%."
+    ),
+    ollama_tag="devstral:latest",
+    hf_repo="mistralai/Devstral-Small-2507",
+    vllm_model="mistralai/Devstral-Small-2507",
+    min_vram_gb=16,
+    recommended_vram_gb=24,
+    parameters_b=24,
+    supports_thinking=True,
+    supports_tool_calling=True,
+    max_context_length=131072,
+    fine_tune_base=True,
+    lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+    benchmark_scores={"swe_bench": 0.468, "humaneval": 0.85, "coding": 0.87, "agentic": 0.90},
+)
+
+QWEN3_32B = ModelSpec(
+    id="qwen3-32b",
+    name="Qwen3-32B",
+    category=ModelCategory.REASONING,
+    strength=ModelStrength.TOP_OVERALL,
+    description=(
+        "Qwen3's best balanced model. Strong reasoning with thinking mode, "
+        "excellent coding, 128K context, tool calling support. "
+        "Runs comfortably on 24GB VRAM. Great default for Tova."
+    ),
+    ollama_tag="qwen3:32b",
+    hf_repo="Qwen/Qwen3-32B",
+    vllm_model="Qwen/Qwen3-32B",
+    min_vram_gb=20,
+    recommended_vram_gb=24,
+    parameters_b=32,
+    supports_thinking=True,
+    supports_tool_calling=True,
+    max_context_length=131072,
+    fine_tune_base=True,
+    lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    benchmark_scores={"mmlu": 0.86, "humaneval": 0.85, "math": 0.83, "coding": 0.85, "agentic": 0.88},
+)
+
+QWEN3_8B = ModelSpec(
+    id="qwen3-8b",
+    name="Qwen3-8B",
+    category=ModelCategory.GENERAL,
+    strength=ModelStrength.ON_DEVICE,
+    description=(
+        "Lightweight but capable. Runs on 8GB VRAM. Thinking mode, tool calling, "
+        "128K context. Best small model for resource-constrained setups."
+    ),
+    ollama_tag="qwen3:8b",
+    hf_repo="Qwen/Qwen3-8B",
+    vllm_model="Qwen/Qwen3-8B",
+    min_vram_gb=6,
+    recommended_vram_gb=8,
+    parameters_b=8,
+    supports_thinking=True,
+    supports_tool_calling=True,
+    max_context_length=131072,
+    fine_tune_base=True,
+    lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    benchmark_scores={"mmlu": 0.74, "humaneval": 0.72, "coding": 0.73},
+)
+
+
 # ── Vision & Multimodal Models ───────────────────────────────────────────
 
 QWEN3_VL = ModelSpec(
@@ -291,12 +484,18 @@ ALL_MODELS: dict[str, ModelSpec] = {
     m.id: m for m in [
         # Reasoning
         GLM_5, DEEPSEEK_V3_2, KIMI_K2_5, GPT_OSS_120B, QWEN3_235B,
+        # General (balanced)
+        QWEN3_32B, QWEN3_8B,
+        # Coding
+        QWEN2_5_CODER_32B, QWEN2_5_CODER_7B, DEEPSEEK_CODER_V2,
+        CODESTRAL_25_01, STARCODER2_15B, DEVSTRAL,
         # Vision
         QWEN3_VL, INTERNVL_3, LLAMA_4_SCOUT, GEMMA_3,
     ]
 }
 
 REASONING_MODELS = {k: v for k, v in ALL_MODELS.items() if v.category == ModelCategory.REASONING}
+CODING_MODELS = {k: v for k, v in ALL_MODELS.items() if v.strength in (ModelStrength.CODING, ModelStrength.CODING_ON_DEVICE, ModelStrength.MATH_CODING)}
 VISION_MODELS = {k: v for k, v in ALL_MODELS.items() if v.category == ModelCategory.VISION}
 GENERAL_MODELS = {k: v for k, v in ALL_MODELS.items() if v.category == ModelCategory.GENERAL}
 
@@ -305,16 +504,21 @@ FINE_TUNE_BASES = {k: v for k, v in ALL_MODELS.items() if v.fine_tune_base}
 
 # Recommended defaults by use case
 RECOMMENDED = {
+    "default": "qwen3-32b",  # best balanced model — Tova's default
     "reasoning": "glm-5",
     "math": "deepseek-v3.2-speciale",
+    "coding": "qwen2.5-coder-32b",  # best open-source coding model
+    "coding_light": "qwen2.5-coder-7b",  # best coding model for low VRAM
+    "coding_agentic": "devstral",  # best for AI coding agents (SWE-bench leader)
     "agentic": "kimi-k2.5",
     "instruction": "gpt-oss-120b",
-    "general": "qwen3-235b",
+    "general": "qwen3-32b",
+    "general_light": "qwen3-8b",  # best lightweight all-rounder
     "vision": "qwen3-vl-235b",
     "spatial": "internvl3-78b",
     "speed": "llama-4-scout",
-    "on_device": "gemma-3-27b",
-    "fine_tune_base": "glm-5",  # best overall as fine-tune base
+    "on_device": "qwen3-8b",
+    "fine_tune_base": "qwen3-32b",
 }
 
 

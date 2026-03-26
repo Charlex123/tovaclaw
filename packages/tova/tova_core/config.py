@@ -13,7 +13,7 @@ class TovaSettings(BaseSettings):
     # ── LLM Provider ──────────────────────────────────────────
     # Supported: "anthropic", "openai", "google", "local", "tova"
     # "tova" = custom fine-tuned model served locally
-    llm_provider: str = "anthropic"
+    llm_provider: str = "local"
 
     # Anthropic (Claude)
     anthropic_api_key: str = ""
@@ -29,7 +29,7 @@ class TovaSettings(BaseSettings):
 
     # Model name — provider-specific
     # Examples: claude-opus-4-6, gpt-4o, gemini-2.0-flash, glm-5, deepseek-v3.2-speciale
-    agent_model: str = "claude-sonnet-4-6"
+    agent_model: str = "qwen3:32b"
 
     # ── Open-Source Model Selection ──────────────────────────
     # Override to use a specific open-source model from the registry.

@@ -8,6 +8,16 @@ import {
   Workflow,
   Plug,
   Globe,
+  Plane,
+  Mail,
+  Database,
+  Video,
+  Phone,
+  AlertTriangle,
+  Lock,
+  Image,
+  GraduationCap,
+  Shield,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -20,51 +30,111 @@ interface Feature {
 const features: Feature[] = [
   {
     icon: <MessageSquare className="w-5 h-5" />,
-    title: "Custom Agents",
+    title: "Multi-Agent Runtime",
     description:
-      "Define agents with system prompts, tools, and workflows. Each agent is a LangGraph state machine you fully control.",
+      "Define agents with system prompts, tools, triggers, and memory. Each agent is a LangGraph state machine with per-agent LLM overrides.",
   },
   {
     icon: <Plug className="w-5 h-5" />,
-    title: "Provider Pattern",
+    title: "15 Provider Interfaces",
     description:
-      "Pluggable BaseBackend, BaseStore, BaseAuth, and BaseNotifier interfaces let you connect any backend, database, or auth system.",
+      "Backend, Store, Auth, Email, Travel, Telephony, Video, Geolocation, VectorStore, FileStore, Image/Video/Audio generation — all pluggable.",
   },
   {
     icon: <Cpu className="w-5 h-5" />,
     title: "Multi-LLM Support",
     description:
-      "Swap between Claude, GPT, Gemini, or local models with a single config change. No vendor lock-in.",
+      "Claude, GPT, Gemini, or local models via Ollama/vLLM. Per-agent model overrides with a single config change.",
   },
   {
     icon: <Wrench className="w-5 h-5" />,
-    title: "Pluggable Tool System",
+    title: "70+ Built-in Tools",
     description:
-      "ToolRegistry and ToolDefinition APIs let you register custom tools the agent can invoke during conversations.",
+      "Email, travel, todos, notes, events, CCTV, vehicle tracking, emergency, datasets, phone, file management, and web search.",
   },
   {
     icon: <Brain className="w-5 h-5" />,
-    title: "Agent Memory",
+    title: "Brain Box Memory",
     description:
-      "Persistent context across sessions. Agents remember user preferences, past interactions, and conversation history.",
+      "Per-feature, per-user memory namespaces with TTL. Agents remember preferences, facts, and context across isolated memory spaces.",
+  },
+  {
+    icon: <Database className="w-5 h-5" />,
+    title: "RAG & Datasets",
+    description:
+      "Ingest PDFs, DOCX, XLSX, CSVs, images (OCR), and JSON. Query via embeddings with ChromaDB, Pinecone, or Qdrant.",
+  },
+  {
+    icon: <Plane className="w-5 h-5" />,
+    title: "Travel & Booking",
+    description:
+      "Search flights, trains, buses, and car hire with built-in Amadeus and SerpAPI integrations. Compare transport options.",
+  },
+  {
+    icon: <Mail className="w-5 h-5" />,
+    title: "Email Management",
+    description:
+      "IMAP/SMTP integration with encrypted credentials. List, read, categorize, draft, and send emails through natural language.",
+  },
+  {
+    icon: <Video className="w-5 h-5" />,
+    title: "Real-time Processing",
+    description:
+      "Background workers for video analysis, GPS tracking, and emergency monitoring. Continuous anomaly detection.",
+  },
+  {
+    icon: <Phone className="w-5 h-5" />,
+    title: "Telephony & SMS",
+    description:
+      "Twilio-powered phone calls and SMS. Make calls, check status, and send messages through agent conversations.",
+  },
+  {
+    icon: <AlertTriangle className="w-5 h-5" />,
+    title: "Emergency System",
+    description:
+      "Report, escalate, and acknowledge emergencies with real-time monitoring and automatic alert distribution.",
   },
   {
     icon: <Clock className="w-5 h-5" />,
     title: "Scheduler & Events",
     description:
-      "Schedule agent executions on a cron or trigger them from events. Automate follow-ups, notifications, and recurring tasks.",
+      "Cron-based and event-driven agent execution. Automate follow-ups, digests, and recurring tasks with triggers.",
+  },
+  {
+    icon: <GraduationCap className="w-5 h-5" />,
+    title: "Self-Training ML Engine",
+    description:
+      "7 built-in ML models: intent classifier, anomaly detector, preference predictor, urgency scorer. Learns from every conversation with consent-gated data collection.",
+  },
+  {
+    icon: <Image className="w-5 h-5" />,
+    title: "Creative Generation",
+    description:
+      "Image, video, and audio generation via pluggable providers. Generate content directly from agent conversations.",
+  },
+  {
+    icon: <Lock className="w-5 h-5" />,
+    title: "Encrypted Storage",
+    description:
+      "Fernet encryption for all credentials at rest. Email passwords, API tokens, and user secrets are never stored in plaintext.",
+  },
+  {
+    icon: <Shield className="w-5 h-5" />,
+    title: "4 Auth Modes",
+    description:
+      "Session (anonymous), JWT (production), API Key (service), or None (local). Works with Auth0, Supabase, or any JWT issuer.",
   },
   {
     icon: <Workflow className="w-5 h-5" />,
-    title: "Workflow Automation",
+    title: "Open-Source Models",
     description:
-      "Chain tools and agents into multi-step workflows. Handle approvals, escalations, and conditional branching out of the box.",
+      "First-class support for GLM, DeepSeek, Kimi, Qwen, and more. Thinking tokens, vision models, and VRAM-aware auto-selection.",
   },
   {
     icon: <Globe className="w-5 h-5" />,
-    title: "REST API",
+    title: "Standalone Mode",
     description:
-      "FastAPI-based with streaming chat, agent management, and conversation endpoints. Deploy anywhere with uvicorn.",
+      "Zero-config launcher with SQLite, session auth, and all built-in features. Run a full agent server in one command.",
   },
 ];
 
@@ -108,12 +178,12 @@ export default function Features() {
             Everything you need to build AI agents
           </h2>
           <p className="text-neutral-400 max-w-2xl mx-auto">
-            A complete framework with pluggable architecture, multi-LLM support,
-            and production-ready patterns for any domain.
+            A complete multi-agent framework with 15 providers, 70+ tools,
+            self-training ML, Brain Box memory, RAG, and encrypted storage.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {features.map((feature, i) => (
             <FeatureCard key={feature.title} feature={feature} index={i} />
           ))}

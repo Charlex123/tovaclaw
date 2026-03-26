@@ -110,6 +110,20 @@ TOOL_ACTION_MAP = {
     "add_agent_to_workflow": "workflow_agent_added",
     "remove_workflow_step": "workflow_step_removed",
     "reorder_workflow": "workflow_reordered",
+    # Code Execution
+    "execute_code": "code_executed",
+    "run_shell_command": "shell_executed",
+    "read_project_file": "project_file_read",
+    "write_project_file": "project_file_written",
+    "edit_project_file": "project_file_edited",
+    "search_codebase": "codebase_searched",
+    "list_project_files": "project_files_listed",
+    "git_command": "git_executed",
+    # Model Management
+    "check_model_status": "model_status",
+    "install_model": "model_installed",
+    "recommend_models": "model_recommendations",
+    "list_available_models": "models_listed",
 }
 
 

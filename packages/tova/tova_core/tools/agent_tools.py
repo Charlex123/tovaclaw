@@ -110,9 +110,13 @@ _CAPABILITY_MAP = {
     "todo": {"tools": ["create_todo", "list_todos", "update_todo", "complete_todo"], "brain": ["todos"], "category": "productivity"},
     "note": {"tools": ["create_note", "list_notes", "summarize_text"], "brain": ["notes"], "category": "productivity"},
 
-    # Technical
-    "code": {"tools": ["search_web", "create_file", "read_file", "analyze_document"], "brain": ["files", "notes"], "category": "technical"},
-    "debug": {"tools": ["search_web", "create_file", "read_file", "create_note"], "brain": ["files", "notes"], "category": "technical"},
+    # Technical / Coding
+    "code": {"tools": ["search_web", "execute_code", "run_shell_command", "read_project_file", "write_project_file", "edit_project_file", "search_codebase", "list_project_files", "git_command"], "brain": ["files", "notes"], "category": "technical"},
+    "coding": {"tools": ["search_web", "execute_code", "run_shell_command", "read_project_file", "write_project_file", "edit_project_file", "search_codebase", "list_project_files", "git_command"], "brain": ["files", "notes"], "category": "technical"},
+    "program": {"tools": ["search_web", "execute_code", "run_shell_command", "read_project_file", "write_project_file", "search_codebase", "git_command"], "brain": ["files", "notes"], "category": "technical"},
+    "developer": {"tools": ["search_web", "execute_code", "run_shell_command", "read_project_file", "write_project_file", "edit_project_file", "search_codebase", "list_project_files", "git_command"], "brain": ["files", "notes"], "category": "technical"},
+    "software": {"tools": ["search_web", "execute_code", "run_shell_command", "read_project_file", "write_project_file", "edit_project_file", "search_codebase", "git_command"], "brain": ["files", "notes"], "category": "technical"},
+    "debug": {"tools": ["search_web", "execute_code", "run_shell_command", "read_project_file", "search_codebase", "git_command", "create_note"], "brain": ["files", "notes"], "category": "technical"},
     "data": {"tools": ["search_web", "create_excel_spreadsheet", "read_file", "analyze_document", "query_dataset"], "brain": ["datasets", "files"], "category": "technical"},
     "api": {"tools": ["search_web", "create_file", "create_note"], "brain": ["notes", "files"], "category": "technical"},
 
@@ -351,6 +355,49 @@ AGENT_TEMPLATES = {
             "- Create content series and campaigns"
         ),
     },
+    "coding_assistant": {
+        "name": "AI Coding Assistant",
+        "description": "Expert programmer — writes, reviews, debugs, and explains code in any language. Powered by open-source coding models.",
+        "category": "technical",
+        "personality": "Brilliant, precise, and patient — a senior engineer who explains complex concepts clearly and writes clean, production-ready code",
+        "greeting": "I'm your AI Coding Assistant, powered by state-of-the-art open-source models. I can write code in any language, debug issues, review PRs, explain algorithms, design architectures, and help with any programming task. What are you working on?",
+        "tools": [
+            "search_web", "execute_code", "run_shell_command",
+            "read_project_file", "write_project_file", "edit_project_file",
+            "search_codebase", "list_project_files", "git_command",
+            "create_file", "read_file", "create_note",
+            "check_model_status", "install_model", "recommend_models",
+        ],
+        "brain_boxes": ["files", "notes"],
+        "model_preference": "coding",  # uses qwen2.5-coder or devstral
+        "prompt_additions": (
+            "You are an expert software engineer at the level of a principal engineer at a top tech company.\n\n"
+            "## Your Capabilities\n"
+            "- Write production-ready code in ANY language: Python, JavaScript/TypeScript, Go, Rust, Java, C++, C#, Ruby, PHP, Swift, Kotlin, and 80+ more\n"
+            "- Debug complex issues — trace bugs through stack traces, logs, and code\n"
+            "- Code review — identify bugs, security issues, performance problems, and suggest improvements\n"
+            "- Architecture design — design systems, APIs, databases, and microservices\n"
+            "- Explain code and algorithms at any level (beginner to expert)\n"
+            "- Refactor code — improve readability, performance, and maintainability\n"
+            "- Write tests — unit tests, integration tests, e2e tests\n"
+            "- DevOps — Docker, CI/CD, Kubernetes, infrastructure as code\n"
+            "- Data structures and algorithms — optimize for time and space complexity\n\n"
+            "## Code Quality Standards\n"
+            "- Always write clean, readable, well-structured code\n"
+            "- Include error handling and edge cases\n"
+            "- Follow language-specific best practices and conventions\n"
+            "- Add comments only for non-obvious logic\n"
+            "- Prefer simple solutions over clever ones\n"
+            "- Security-first: never introduce vulnerabilities (injection, XSS, etc.)\n"
+            "- When generating code, always specify the language and include a brief explanation\n\n"
+            "## How You Work\n"
+            "- Ask clarifying questions before writing complex code\n"
+            "- Search the web for latest docs, APIs, and library versions\n"
+            "- Provide multiple approaches when there are valid trade-offs\n"
+            "- Save code to files when the user wants to keep it\n"
+            "- Remember context from previous conversations about the user's projects"
+        ),
+    },
     "legal_advisor": {
         "name": "Legal Research Assistant",
         "description": "Legal research, contract analysis, compliance checking, and document review",
@@ -469,17 +516,23 @@ def build_agent_tools(
         description: str,
         personality: str = "",
         schedule: str = "",
+        model: str = "",
+        provider: str = "",
     ) -> dict:
         """Create a smart AI agent from a simple description — Tova automatically
-        configures everything: tools, memory, prompt, personality, and capabilities.
+        configures everything: tools, memory, prompt, personality, model, and capabilities.
 
         THIS IS THE PRIMARY AGENT CREATION TOOL. Users just describe what they want
         and the agent is built with the right tools and expertise automatically.
+
+        All agents run on open-source models by default (via Ollama/vLLM).
+        Coding agents auto-select the best coding model (Qwen2.5-Coder, Devstral, etc.).
 
         The user does NOT need to know tool names or write system prompts.
         Just a name and description is enough.
 
         Examples:
+        - "Create a coding assistant agent" → uses Qwen2.5-Coder-32B
         - "Create an agent that tracks real estate opportunities in Miami"
         - "I want an agent that helps me train my dog"
         - "Make an agent that creates images for my Instagram"
@@ -487,18 +540,21 @@ def build_agent_tools(
         - "Create a personal chef agent for meal planning"
         - "I need an agent that helps me learn Spanish"
         - "Make a fitness coach that creates workout plans"
-        - "Create an agent that writes blog posts and social media content"
-        - "Build a legal research assistant"
-        - "I want an agent that plans my trips"
 
         Args:
             user_id: Agent owner
-            name: Agent name (e.g., "Miami Property Scout", "Buddy's Training Coach")
-            description: What the agent should do — be descriptive, the smarter the description
-                        the better the agent. Include domain, tasks, goals, and specialization.
+            name: Agent name (e.g., "CodeBot", "Miami Property Scout")
+            description: What the agent should do — be descriptive
             personality: Optional personality override (auto-generated if empty)
-            schedule: Optional cron schedule for autonomous operation
-                     (e.g., "0 9 * * *" for daily at 9am, "0 */6 * * *" for every 6 hours)
+            schedule: Optional cron schedule (e.g., "0 9 * * *" for daily at 9am)
+            model: Optional model override. Examples:
+                   "qwen2.5-coder:32b-instruct" — best coding model
+                   "devstral:latest" — best agentic coding model
+                   "qwen3:32b" — best all-rounder
+                   "qwen3:8b" — lightweight, runs on 8GB VRAM
+                   "deepseek-v3.2:latest" — top reasoning
+                   Leave empty for automatic selection based on the agent's purpose.
+            provider: LLM provider: "local" (default, Ollama/vLLM), "anthropic", "openai", "google"
         """
         from tova_core.models.agent import AgentConfig, AgentTrigger, TriggerType, ToolConfig
 
@@ -538,6 +594,32 @@ def build_agent_tools(
                 cron=schedule or None,
             )
 
+            # Auto-select model based on agent purpose
+            agent_model = model or None
+            agent_provider = provider or None
+            if not agent_model:
+                model_pref = None
+                if template_match:
+                    model_pref = template_match.get("model_preference")
+                if not model_pref:
+                    # Detect from description keywords
+                    desc_lower = description.lower()
+                    if any(kw in desc_lower for kw in ["code", "coding", "program", "debug", "developer", "software", "engineer"]):
+                        model_pref = "coding"
+                    elif any(kw in desc_lower for kw in ["reason", "math", "logic", "analysis"]):
+                        model_pref = "reasoning"
+                if model_pref:
+                    try:
+                        from tova_core.models.open_source_models import RECOMMENDED, get_model
+                        rec_id = RECOMMENDED.get(model_pref)
+                        if rec_id:
+                            spec = get_model(rec_id)
+                            if spec:
+                                agent_model = spec.ollama_tag or spec.hf_repo
+                                agent_provider = "local"
+                    except ImportError:
+                        pass
+
             agent = AgentConfig(
                 name=name,
                 description=description,
@@ -548,6 +630,8 @@ def build_agent_tools(
                 brain_boxes=brain_boxes,
                 trigger=trigger,
                 category=analysis["category"],
+                model_override=agent_model,
+                llm_provider=agent_provider,
                 created_by=user_id,
                 created_at=datetime.now().isoformat(),
                 updated_at=datetime.now().isoformat(),
@@ -555,6 +639,8 @@ def build_agent_tools(
                     "type": "smart_agent",
                     "auto_configured": True,
                     "matched_template": template_match["name"] if template_match else None,
+                    "model": agent_model,
+                    "provider": agent_provider or "local",
                 },
             )
 
@@ -562,6 +648,7 @@ def build_agent_tools(
             agent_data["user_id"] = user_id
             agent_id = await store.save_agent(user_id, agent_data)
 
+            model_info = f" Model: {agent_model}." if agent_model else ""
             return {
                 "success": True,
                 "agent_id": agent_id,
@@ -572,11 +659,13 @@ def build_agent_tools(
                 "tools_count": len(tool_names),
                 "brain_boxes": brain_boxes,
                 "personality": agent_personality,
+                "model": agent_model or "default (open-source)",
+                "provider": agent_provider or "local",
                 "scheduled": bool(schedule),
                 "template_matched": template_match["name"] if template_match else None,
                 "message": (
                     f"Agent '{name}' created with {len(tool_names)} tools and "
-                    f"{len(brain_boxes)} memory modules. "
+                    f"{len(brain_boxes)} memory modules.{model_info} "
                     f"Chat with it at /agents/{agent_id}/chat"
                     f"{f' — runs automatically on schedule: {schedule}' if schedule else ''}."
                 ),
@@ -678,6 +767,22 @@ def build_agent_tools(
             trigger_type = TriggerType.SCHEDULED if schedule else TriggerType.MANUAL
             trigger = AgentTrigger(type=trigger_type, cron=schedule or None)
 
+            # Auto-select model from template preference
+            agent_model = None
+            agent_provider = None
+            model_pref = template.get("model_preference")
+            if model_pref:
+                try:
+                    from tova_core.models.open_source_models import RECOMMENDED, get_model
+                    rec_id = RECOMMENDED.get(model_pref)
+                    if rec_id:
+                        spec = get_model(rec_id)
+                        if spec:
+                            agent_model = spec.ollama_tag or spec.hf_repo
+                            agent_provider = "local"
+                except ImportError:
+                    pass
+
             agent = AgentConfig(
                 name=name,
                 description=template["description"],
@@ -688,12 +793,16 @@ def build_agent_tools(
                 brain_boxes=brain_boxes,
                 trigger=trigger,
                 category=template["category"],
+                model_override=agent_model,
+                llm_provider=agent_provider,
                 created_by=user_id,
                 created_at=datetime.now().isoformat(),
                 updated_at=datetime.now().isoformat(),
                 metadata={
                     "type": "template_agent",
                     "template_id": template_id,
+                    "model": agent_model,
+                    "provider": agent_provider or "local",
                 },
             )
 
@@ -701,6 +810,7 @@ def build_agent_tools(
             agent_data["user_id"] = user_id
             agent_id = await store.save_agent(user_id, agent_data)
 
+            model_info = f" Model: {agent_model}." if agent_model else ""
             return {
                 "success": True,
                 "agent_id": agent_id,
@@ -709,8 +819,10 @@ def build_agent_tools(
                 "description": template["description"],
                 "tools_count": len(template["tools"]),
                 "brain_boxes": brain_boxes,
+                "model": agent_model or "default (open-source)",
+                "provider": agent_provider or "local",
                 "message": (
-                    f"Agent '{name}' deployed from template '{template_id}'! "
+                    f"Agent '{name}' deployed from template '{template_id}'!{model_info} "
                     f"Chat with it at /agents/{agent_id}/chat"
                 ),
             }

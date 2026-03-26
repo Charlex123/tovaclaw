@@ -3,35 +3,42 @@ import { motion } from "framer-motion";
 const layers = [
   {
     label: "Client Interface",
-    sublabel: "REST API / WebSocket",
+    sublabel: "REST API / WebSocket / SDK",
     color: "from-blue-500/20 to-blue-500/5",
     borderColor: "border-blue-500/20",
     textColor: "text-blue-400",
   },
   {
-    label: "Tova Agent",
-    sublabel: "LangGraph State Machine",
+    label: "Multi-Agent Runtime",
+    sublabel: "LangGraph  |  Brain Box  |  Scheduler  |  Learning Engine",
     color: "from-cyan-500/20 to-cyan-500/5",
     borderColor: "border-cyan-500/20",
     textColor: "text-cyan-400",
   },
   {
-    label: "Tool Registry",
-    sublabel: "Your Tools  |  Actions  |  Integrations  |  Workflows",
+    label: "Tool Registry (70+)",
+    sublabel: "Email  |  Travel  |  CCTV  |  Phone  |  Todos  |  RAG  |  Custom",
     color: "from-indigo-500/20 to-indigo-500/5",
     borderColor: "border-indigo-500/20",
     textColor: "text-indigo-400",
   },
   {
-    label: "Provider Layer",
-    sublabel: "BaseBackend  |  BaseStore  |  BaseAuth  |  BaseNotifier",
+    label: "Provider Layer (15)",
+    sublabel: "Backend  |  Store  |  Auth  |  Email  |  Travel  |  Video  |  Generation  |  +8 more",
     color: "from-purple-500/20 to-purple-500/5",
     borderColor: "border-purple-500/20",
     textColor: "text-purple-400",
   },
   {
+    label: "Real-time Workers",
+    sublabel: "Video Analysis  |  GPS Tracking  |  Emergency Monitor",
+    color: "from-amber-500/20 to-amber-500/5",
+    borderColor: "border-amber-500/20",
+    textColor: "text-amber-400",
+  },
+  {
     label: "Infrastructure",
-    sublabel: "Your Database  |  Your Auth  |  Your APIs  |  Any LLM",
+    sublabel: "Any DB  |  Any Auth  |  Any LLM  |  Vector Store  |  File Store",
     color: "from-pink-500/20 to-pink-500/5",
     borderColor: "border-pink-500/20",
     textColor: "text-pink-400",
@@ -56,7 +63,7 @@ export default function Architecture() {
           </h2>
           <p className="text-neutral-400 max-w-2xl mx-auto">
             Each layer is pluggable. Implement the interfaces that matter to
-            your system, and Tova handles the rest.
+            your system, and TovaClaw handles the rest.
           </p>
         </motion.div>
 
@@ -123,13 +130,24 @@ export default function Architecture() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-3"
+          className="mt-16 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
         >
           {[
-            { name: "BaseBackend", desc: "Your domain logic" },
+            { name: "BaseBackend", desc: "Domain logic & orders" },
             { name: "BaseStore", desc: "Persistence layer" },
             { name: "BaseAuth", desc: "Token validation" },
             { name: "BaseNotifier", desc: "Push / SMS / Email" },
+            { name: "BaseEmailProvider", desc: "IMAP / SMTP" },
+            { name: "BaseTravelProvider", desc: "Flights / Trains / Cars" },
+            { name: "BaseCalendarProvider", desc: "Events & scheduling" },
+            { name: "BaseTelephony", desc: "Calls & SMS (Twilio)" },
+            { name: "BaseVideoStream", desc: "CCTV / Video feeds" },
+            { name: "BaseGeolocation", desc: "GPS / Fleet tracking" },
+            { name: "BaseVectorStore", desc: "RAG embeddings" },
+            { name: "BaseFileStore", desc: "File upload / storage" },
+            { name: "BaseImageGenerator", desc: "Image generation" },
+            { name: "BaseVideoGenerator", desc: "Video generation" },
+            { name: "BaseAudioGenerator", desc: "Audio generation" },
           ].map((p) => (
             <div
               key={p.name}

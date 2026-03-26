@@ -7,12 +7,24 @@ interface Endpoint {
 }
 
 const endpoints: Endpoint[] = [
-  { method: "POST", path: "/agent/chat", description: "Send a message to the default agent and receive a streaming response" },
-  { method: "POST", path: "/agent/execute", description: "Execute an agent action programmatically with structured input" },
-  { method: "GET", path: "/agent/conversations", description: "List all conversations for the authenticated user" },
-  { method: "POST", path: "/agents", description: "Create a custom agent with specific tools and instructions" },
-  { method: "POST", path: "/agents/{id}/chat", description: "Chat with a specific custom agent by ID" },
+  { method: "POST", path: "/agent/chat", description: "Send a message and receive a streaming response" },
+  { method: "POST", path: "/agent/execute", description: "Execute an agent action programmatically" },
+  { method: "GET", path: "/agent/conversations", description: "List conversations for the authenticated user" },
+  { method: "GET", path: "/agent/conversation/{id}", description: "Retrieve full conversation history by ID" },
+  { method: "POST", path: "/agents", description: "Create a custom agent with tools, triggers, memory, and brain boxes" },
+  { method: "GET", path: "/agents", description: "List all agents owned by the authenticated user" },
   { method: "GET", path: "/agents/{id}", description: "Retrieve agent configuration, tools, and metadata" },
+  { method: "PUT", path: "/agents/{id}", description: "Update an existing agent's config, tools, or triggers" },
+  { method: "DELETE", path: "/agents/{id}", description: "Delete a custom agent" },
+  { method: "POST", path: "/agents/{id}/chat", description: "Chat with a specific custom agent by ID" },
+  { method: "GET", path: "/agents/tools", description: "List all available tools in the registry (catalog)" },
+  { method: "POST", path: "/datasets/ingest", description: "Ingest PDF, DOCX, CSV, JSON, or images (OCR) into vector store" },
+  { method: "GET", path: "/datasets/query", description: "Query ingested datasets via vector similarity search" },
+  { method: "POST", path: "/auth/email/connect", description: "Connect email via IMAP with Fernet-encrypted credentials" },
+  { method: "GET", path: "/auth/email/status", description: "Check email connection status" },
+  { method: "GET", path: "/auth/info", description: "Show current auth configuration (no secrets)" },
+  { method: "POST", path: "/auth/keys", description: "Create a new API key (apikey auth mode)" },
+  { method: "GET", path: "/health", description: "Health check with service status and version" },
 ];
 
 const methodColors: Record<string, string> = {

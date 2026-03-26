@@ -49,6 +49,8 @@ from tova_core.tools.document_tools import build_document_tools
 from tova_core.tools.workforce_tools import build_workforce_tools
 from tova_core.tools.agent_tools import build_agent_tools
 from tova_core.tools.creative_tools import build_image_tools, build_video_tools, build_audio_tools
+from tova_core.tools.code_tools import build_code_tools
+from tova_core.tools.model_tools import build_model_tools
 from tova_core.workforce.engine import WorkforceEngine
 from tova_core.agents.order_agent import run_order_agent
 from tova_core.agents.execution_agent import run_execution_agent
@@ -236,6 +238,10 @@ def create_app(
         extra_tools.extend(build_workforce_tools(store, _workforce_engine))
         # Smart agent factory (create any agent from description)
         extra_tools.extend(build_agent_tools(store, tool_registry))
+        # Code execution tools (for coding agents and workspace operations)
+        extra_tools.extend(build_code_tools(store))
+        # Model management tools (check/install/recommend local models)
+        extra_tools.extend(build_model_tools())
         # Creative tools (image, video, audio generation)
         if image_generator:
             extra_tools.extend(build_image_tools(image_generator, file_store))
@@ -505,6 +511,98 @@ def create_app(
                 tools_used=result.get("tools_used", []),
                 data=result.get("data"),
             )
+
+    # ── Feature: Model Management ─────────────────────────────
+    from tova_core.tools.model_tools import _get_ollama_base
+
+    @app.get("/models")
+    async def list_models():
+        """List installed local models and server status.
+
+        No auth required — this is a setup/diagnostic endpoint.
+        """
+        import httpx as _httpx
+        base_url = _get_ollama_base()
+        settings = get_settings()
+
+        try:
+            async with _httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{base_url}/api/tags")
+                if resp.status_code == 200:
+                    data = resp.json()
+                    models = data.get("models", [])
+                    return {
+                        "server": "running",
+                        "provider": settings.llm_provider,
+                        "configured_model": settings.agent_model,
+                        "installed": [
+                            {
+                                "name": m.get("name"),
+                                "size_gb": round(m.get("size", 0) / 1e9, 1),
+                                "family": m.get("details", {}).get("family", ""),
+                            }
+                            for m in models
+                        ],
+                    }
+        except Exception:
+            pass
+
+        return {
+            "server": "not running",
+            "provider": settings.llm_provider,
+            "configured_model": settings.agent_model,
+            "setup": {
+                "step_1": "Install Ollama: https://ollama.com/download",
+                "step_2": "Start Ollama: ollama serve",
+                "step_3": f"Pull the default model: ollama pull {settings.agent_model}",
+                "step_4": "Restart Tova",
+            },
+        }
+
+    @app.post("/models/pull")
+    async def pull_model(
+        model_name: str,
+        authorization: str = Header(..., description="Bearer <token>"),
+    ):
+        """Pull (download) a model via Ollama."""
+        _extract_token(authorization)
+
+        import httpx as _httpx
+        base_url = _get_ollama_base()
+
+        try:
+            async with _httpx.AsyncClient(timeout=600.0) as client:
+                resp = await client.post(
+                    f"{base_url}/api/pull",
+                    json={"name": model_name, "stream": False},
+                )
+                if resp.status_code == 200:
+                    return {"success": True, "model": model_name, "status": "installed"}
+                return {"error": f"Ollama returned {resp.status_code}", "model": model_name}
+        except Exception as e:
+            return {"error": str(e), "model": model_name}
+
+    @app.get("/models/recommended")
+    async def recommended_models(task: str = "general", vram_gb: float = 0):
+        """Get model recommendations for a task and hardware config."""
+        try:
+            from tova_core.models.open_source_models import RECOMMENDED, ALL_MODELS, select_model
+            settings = get_settings()
+            vram = vram_gb or settings.available_vram_gb
+
+            result = {"task": task, "vram_gb": vram, "models": {}}
+            for task_name, model_id in RECOMMENDED.items():
+                if model_id in ALL_MODELS:
+                    m = ALL_MODELS[model_id]
+                    result["models"][task_name] = {
+                        "name": m.name,
+                        "install": f"ollama pull {m.ollama_tag}",
+                        "vram_gb": m.recommended_vram_gb,
+                        "fits": m.recommended_vram_gb <= vram,
+                    }
+            return result
+        except ImportError:
+            return {"error": "Model registry not available"}
 
     # ── Feature: File Upload & Device Workspace ────────────────
     if file_store:
