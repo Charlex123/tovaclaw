@@ -1,4 +1,5 @@
 import { HelpCircle, Check, X } from "lucide-react";
+import { useChatActions } from "../ChatContext";
 
 interface ConfirmationData {
   title: string;
@@ -9,6 +10,8 @@ interface ConfirmationData {
 }
 
 export default function ConfirmationCard({ data }: { data: ConfirmationData }) {
+  const { sendMessage } = useChatActions();
+
   return (
     <div className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/5 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-500/10">
@@ -30,11 +33,17 @@ export default function ConfirmationCard({ data }: { data: ConfirmationData }) {
           </div>
         )}
         <div className="flex gap-2 pt-1">
-          <button className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg hover:from-blue-500 hover:to-cyan-500 transition-all">
+          <button
+            onClick={() => sendMessage("Yes proceed, confirm the booking")}
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg hover:from-blue-500 hover:to-cyan-500 transition-all"
+          >
             <Check className="w-3 h-3" />
             {data.confirm_label || "Confirm"}
           </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-neutral-300 border border-white/10 rounded-lg hover:bg-white/5 transition-all">
+          <button
+            onClick={() => sendMessage("Cancel, don't proceed with the booking")}
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-neutral-300 border border-white/10 rounded-lg hover:bg-white/5 transition-all"
+          >
             <X className="w-3 h-3" />
             {data.cancel_label || "Cancel"}
           </button>

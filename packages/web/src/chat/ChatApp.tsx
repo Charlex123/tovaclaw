@@ -1,9 +1,26 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import FeatureSidebar from "./FeatureSidebar";
 import ChatPanel from "./ChatPanel";
 import ContextSidebar from "./ContextSidebar";
 import LiveMonitors from "./LiveMonitors";
+import { ChatContext } from "./ChatContext";
 import type { Message } from "./MessageBubble";
+
+/* ---------- Feature → auto-prompt mapping ---------- */
+const featurePrompts: Record<string, string> = {
+  chat: "",
+  email: "Show my unread emails",
+  travel: "Find flights to London next Friday",
+  orders: "Track order #4521",
+  todos: "Show my todo list",
+  notes: "Show my notes",
+  events: "Schedule a meeting for tomorrow at 3pm",
+  emergency: "Show active emergency alerts",
+  cctv: "Show CCTV camera status",
+  fleet: "Show fleet tracking overview",
+  phone: "Call +234 801 234 5678",
+  search: "Search the web for latest AI news",
+};
 
 /* ---------- Demo responses keyed by keyword ---------- */
 interface DemoResponse {
@@ -45,9 +62,9 @@ const demoResponses: { keywords: string[]; response: DemoResponse }[] = [
     },
   },
   {
-    keywords: ["todo", "task", "create a todo", "finish", "report"],
+    keywords: ["todo", "task", "create a todo", "finish", "report", "todo list"],
     response: {
-      content: "I've added your task. Here's your current list:",
+      content: "Here's your current task list:",
       action: "todo_list",
       data: {
         todos: [
@@ -208,6 +225,68 @@ const demoResponses: { keywords: string[]; response: DemoResponse }[] = [
       },
     },
   },
+  {
+    keywords: ["web", "search", "google", "news", "latest"],
+    response: {
+      content: "Here's what I found on the web:\n\n1. **AI Agents Are Reshaping Enterprise Software** — TechCrunch, Mar 25\n2. **OpenAI Launches New Agent Framework** — The Verge, Mar 24\n3. **Multi-Agent Systems: A Practical Guide** — Hacker News, Mar 23\n4. **The Future of Autonomous AI Assistants** — MIT Tech Review, Mar 22\n\nWould you like me to summarize any of these articles?",
+    },
+  },
+  {
+    keywords: ["book", "booking", "confirmed"],
+    response: {
+      content: "Your booking has been confirmed!",
+      action: "confirmation_needed",
+      data: {
+        title: "Confirm Booking",
+        message: "Please confirm your flight booking details:",
+        details: {
+          "Flight": "BA76 — LOS → LHR",
+          "Date": "March 28, 2026",
+          "Passenger": "Charles Okonkwo",
+          "Price": "$842.00",
+          "Class": "Economy",
+        },
+        confirm_label: "Confirm Booking",
+        cancel_label: "Cancel",
+      },
+    },
+  },
+  {
+    keywords: ["add to cart", "added", "cart"],
+    response: {
+      content: "Item added to your cart. Your cart now has 3 items totaling $1,838.97. Would you like to proceed to checkout?",
+    },
+  },
+  {
+    keywords: ["send", "sent", "sending"],
+    response: {
+      content: "Email sent successfully to cto@company.com. The reply was delivered and should appear in their inbox shortly.",
+    },
+  },
+  {
+    keywords: ["acknowledge", "acknowledged"],
+    response: {
+      content: "Emergency EMR-2026-0047 has been acknowledged. The security team has been notified and dispatched to Building A — Main Entrance. I'll continue monitoring and alert you of any updates.",
+    },
+  },
+  {
+    keywords: ["escalate", "escalated"],
+    response: {
+      content: "Emergency EMR-2026-0047 has been escalated to CRITICAL level. Phone call initiated to security manager (+234 800 999 0001). SMS alerts sent to all on-duty personnel. Local authorities have been notified.",
+    },
+  },
+  {
+    keywords: ["end call", "hang up"],
+    response: {
+      content: "Call ended. Duration: 2 minutes 34 seconds. A summary has been saved to your notes.",
+    },
+  },
+  {
+    keywords: ["confirm", "approve", "yes proceed"],
+    response: {
+      content: "Confirmed! Your booking reference is **TOVA-BK-20260328-BA76**. Confirmation email sent to your inbox. You can track this booking anytime by asking me about it.",
+    },
+  },
 ];
 
 function findDemoResponse(message: string): DemoResponse {
@@ -222,7 +301,55 @@ function findDemoResponse(message: string): DemoResponse {
   };
 }
 
-/* ---------- Demo state ---------- */
+/* ---------- Saved conversation messages ---------- */
+const savedConversations: Record<string, Message[]> = {
+  conv1: [
+    { id: "s1", role: "user", content: "Find flights to London next Friday", timestamp: "10:30 AM" },
+    {
+      id: "s2", role: "assistant",
+      content: "I found 4 flights from Lagos (LOS) to London (LHR) for next Friday. Here are the best options:",
+      action: "flight_results",
+      data: {
+        results: [
+          { airline: "British Airways", flight_no: "BA76", departure: "LOS", arrival: "LHR", dep_time: "08:30", arr_time: "14:45", duration: "6h 15m", price: "$842", stops: 0 },
+          { airline: "Virgin Atlantic", flight_no: "VS42", departure: "LOS", arrival: "LHR", dep_time: "11:15", arr_time: "17:20", duration: "6h 05m", price: "$798", stops: 0 },
+        ],
+      },
+      timestamp: "10:30 AM",
+    },
+  ],
+  conv2: [
+    { id: "s3", role: "user", content: "Track order #4521", timestamp: "8:15 AM" },
+    {
+      id: "s4", role: "assistant",
+      content: "Here's the status of your order:",
+      action: "order_status",
+      data: {
+        order_id: "#4521", status: "shipped",
+        items: [{ name: "Wireless Keyboard", quantity: 1, price: "$89.99" }, { name: "USB-C Hub", quantity: 2, price: "$49.98" }],
+        total: "$139.97", estimated_delivery: "March 28, 2026",
+      },
+      timestamp: "8:15 AM",
+    },
+  ],
+  conv3: [
+    { id: "s5", role: "user", content: "Show my todo list", timestamp: "Yesterday" },
+    {
+      id: "s6", role: "assistant",
+      content: "Here's your current task list:",
+      action: "todo_list",
+      data: {
+        todos: [
+          { id: "1", title: "Finish quarterly report", completed: false, priority: "high", due: "Mar 28" },
+          { id: "2", title: "Review PR #421", completed: false, priority: "medium", due: "Mar 27" },
+          { id: "3", title: "Deploy staging environment", completed: true, priority: "high", due: "Mar 25" },
+        ],
+      },
+      timestamp: "Yesterday",
+    },
+  ],
+};
+
 const demoConversations = [
   { id: "conv1", title: "Flight search to London", lastMessage: "Found 4 flights...", time: "Just now" },
   { id: "conv2", title: "Order tracking #4521", lastMessage: "Your order has shipped", time: "2h ago" },
@@ -236,27 +363,71 @@ const demoMemories = [
   { key: "priority_contacts", value: "team@company.com, cto@company.com", feature: "email" },
 ];
 
-let messageCounter = 0;
+/* ---------- Feature → label mapping for active features ---------- */
+const featureLabels: Record<string, string> = {
+  chat: "Chat", email: "Email", travel: "Travel", orders: "Orders",
+  todos: "Todos", notes: "Notes", events: "Calendar", emergency: "Emergency",
+  cctv: "CCTV", fleet: "Fleet", phone: "Phone", search: "Web Search",
+};
+
+let messageCounter = 100;
 
 export default function ChatApp() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [activeFeature, setActiveFeature] = useState("chat");
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
+  const [usedFeatures, setUsedFeatures] = useState<Set<string>>(new Set(["chat"]));
+
+  const now = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const addAssistantMessage = useCallback((content: string, action?: string, data?: unknown) => {
+    setIsTyping(true);
+    const delay = 600 + Math.random() * 800;
+    setTimeout(() => {
+      const msg: Message = {
+        id: `msg-${++messageCounter}`,
+        role: "assistant",
+        content,
+        action,
+        data,
+        timestamp: now(),
+      };
+      setMessages((prev) => [...prev, msg]);
+      setIsTyping(false);
+    }, delay);
+  }, []);
 
   const handleSend = useCallback((text: string) => {
     const userMsg: Message = {
       id: `msg-${++messageCounter}`,
       role: "user",
       content: text,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: now(),
     };
-
     setMessages((prev) => [...prev, userMsg]);
-    setIsTyping(true);
+    setActiveConversation(null);
 
-    // Simulate agent response
-    const delay = 800 + Math.random() * 1200;
+    // Track which features are touched by keywords
+    const lower = text.toLowerCase();
+    setUsedFeatures((prev) => {
+      const next = new Set(prev);
+      if (lower.match(/email|mail|inbox|draft|compose|reply/)) next.add("email");
+      if (lower.match(/flight|travel|london|train|hotel/)) next.add("travel");
+      if (lower.match(/order|track|cart|product|laptop/)) next.add("orders");
+      if (lower.match(/todo|task|report/)) next.add("todos");
+      if (lower.match(/note|jot|remember/)) next.add("notes");
+      if (lower.match(/meeting|schedule|event|calendar/)) next.add("events");
+      if (lower.match(/emergency|alert|fire|security/)) next.add("emergency");
+      if (lower.match(/cctv|camera|surveillance/)) next.add("cctv");
+      if (lower.match(/fleet|vehicle|gps|truck|driver/)) next.add("fleet");
+      if (lower.match(/call|phone|dial|ring|sms/)) next.add("phone");
+      if (lower.match(/search|web|google|news/)) next.add("search");
+      return next;
+    });
+
+    setIsTyping(true);
+    const delay = 600 + Math.random() * 800;
     setTimeout(() => {
       const demo = findDemoResponse(text);
       const assistantMsg: Message = {
@@ -265,41 +436,79 @@ export default function ChatApp() {
         content: demo.content,
         action: demo.action,
         data: demo.data,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        timestamp: now(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
       setIsTyping(false);
     }, delay);
   }, []);
 
+  const handleFeatureSelect = useCallback((featureId: string) => {
+    setActiveFeature(featureId);
+    setUsedFeatures((prev) => new Set(prev).add(featureId));
+
+    // Auto-send contextual prompt (except "chat" which is just the default)
+    const prompt = featurePrompts[featureId];
+    if (prompt) {
+      handleSend(prompt);
+    }
+  }, [handleSend]);
+
+  const handleNewConversation = useCallback(() => {
+    setMessages([]);
+    setActiveConversation(null);
+    setActiveFeature("chat");
+  }, []);
+
+  const handleSelectConversation = useCallback((convId: string) => {
+    const saved = savedConversations[convId];
+    if (saved) {
+      setMessages(saved);
+      setActiveConversation(convId);
+    }
+  }, []);
+
+  const triggerResponse = useCallback((action: string, content: string, data?: unknown) => {
+    addAssistantMessage(content, action, data);
+  }, [addAssistantMessage]);
+
+  const chatActions = useMemo(
+    () => ({ sendMessage: handleSend, triggerResponse }),
+    [handleSend, triggerResponse],
+  );
+
+  const activeFeatureList = useMemo(
+    () => Array.from(usedFeatures).map((f) => featureLabels[f] ?? f),
+    [usedFeatures],
+  );
+
   return (
-    <div className="h-screen bg-[#0a0a0a] text-neutral-200 flex flex-col overflow-hidden">
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left: Feature icons */}
-        <FeatureSidebar
-          activeFeature={activeFeature}
-          onSelectFeature={setActiveFeature}
-        />
+    <ChatContext.Provider value={chatActions}>
+      <div className="h-screen bg-[#0a0a0a] text-neutral-200 flex flex-col overflow-hidden">
+        <div className="flex-1 flex overflow-hidden">
+          <FeatureSidebar
+            activeFeature={activeFeature}
+            onSelectFeature={handleFeatureSelect}
+            onNewConversation={handleNewConversation}
+          />
 
-        {/* Center: Chat */}
-        <ChatPanel
-          messages={messages}
-          onSend={handleSend}
-          isTyping={isTyping}
-        />
+          <ChatPanel
+            messages={messages}
+            onSend={handleSend}
+            isTyping={isTyping}
+          />
 
-        {/* Right: Context */}
-        <ContextSidebar
-          conversations={demoConversations}
-          activeConversation={activeConversation}
-          onSelectConversation={setActiveConversation}
-          memories={demoMemories}
-          activeFeatures={["Email", "Travel", "Orders", "Todos", "Calendar", "CCTV"]}
-        />
+          <ContextSidebar
+            conversations={demoConversations}
+            activeConversation={activeConversation}
+            onSelectConversation={handleSelectConversation}
+            memories={demoMemories}
+            activeFeatures={activeFeatureList}
+          />
+        </div>
+
+        <LiveMonitors />
       </div>
-
-      {/* Bottom: Live monitors */}
-      <LiveMonitors />
-    </div>
+    </ChatContext.Provider>
   );
 }

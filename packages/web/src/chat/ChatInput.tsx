@@ -62,7 +62,7 @@ export default function ChatInput({ onSend, disabled, placeholder }: ChatInputPr
         </div>
         <div className="text-center mt-2">
           <span className="text-[10px] text-neutral-700">
-            Powered by TovaClaw — 70+ tools, 13 providers, multi-LLM
+            Powered by TovaClaw — 70+ tools, 15 providers, multi-LLM
           </span>
         </div>
       </div>

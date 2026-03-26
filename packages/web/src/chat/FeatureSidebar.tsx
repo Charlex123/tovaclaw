@@ -42,9 +42,10 @@ const features: FeatureItem[] = [
 interface FeatureSidebarProps {
   activeFeature: string;
   onSelectFeature: (id: string) => void;
+  onNewConversation: () => void;
 }
 
-export default function FeatureSidebar({ activeFeature, onSelectFeature }: FeatureSidebarProps) {
+export default function FeatureSidebar({ activeFeature, onSelectFeature, onNewConversation }: FeatureSidebarProps) {
   return (
     <aside className="w-16 bg-[#0a0a0a] border-r border-white/5 flex flex-col items-center py-3 shrink-0">
       {/* Logo / Back */}
@@ -76,6 +77,7 @@ export default function FeatureSidebar({ activeFeature, onSelectFeature }: Featu
 
       {/* New conversation */}
       <button
+        onClick={onNewConversation}
         title="New conversation"
         className="w-10 h-10 rounded-xl flex items-center justify-center text-neutral-600 hover:text-cyan-400 hover:bg-white/5 transition-all mt-2"
       >

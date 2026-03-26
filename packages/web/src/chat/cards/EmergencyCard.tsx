@@ -1,4 +1,5 @@
 import { AlertTriangle, Siren, CheckCircle } from "lucide-react";
+import { useChatActions } from "../ChatContext";
 
 interface EmergencyData {
   id: string;
@@ -25,6 +26,8 @@ const severityText = {
 };
 
 export default function EmergencyCard({ data }: { data: EmergencyData }) {
+  const { sendMessage } = useChatActions();
+
   return (
     <div
       className={`mt-2 rounded-xl border-2 overflow-hidden ${
@@ -58,10 +61,16 @@ export default function EmergencyCard({ data }: { data: EmergencyData }) {
         </div>
         {data.status === "active" && (
           <div className="flex gap-2 pt-1">
-            <button className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-500 transition-colors">
+            <button
+              onClick={() => sendMessage(`Acknowledge emergency ${data.id}`)}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-500 transition-colors"
+            >
               Acknowledge
             </button>
-            <button className="px-3 py-1.5 text-xs font-medium text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition-colors">
+            <button
+              onClick={() => sendMessage(`Escalate emergency ${data.id} to critical`)}
+              className="px-3 py-1.5 text-xs font-medium text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition-colors"
+            >
               Escalate
             </button>
           </div>

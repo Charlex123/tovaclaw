@@ -1,4 +1,5 @@
 import { ShoppingCart } from "lucide-react";
+import { useChatActions } from "../ChatContext";
 
 interface Product {
   id: string;
@@ -10,6 +11,7 @@ interface Product {
 }
 
 export default function ProductCard({ data }: { data: { results: Product[] } }) {
+  const { sendMessage } = useChatActions();
   const products = data.results ?? [];
 
   return (
@@ -39,6 +41,7 @@ export default function ProductCard({ data }: { data: { results: Product[] } }) 
             </div>
           </div>
           <button
+            onClick={() => sendMessage(`Add to cart: ${p.name} (${p.price})`)}
             disabled={!p.in_stock}
             className="p-2 rounded-lg text-cyan-400 hover:bg-cyan-400/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >

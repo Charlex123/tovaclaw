@@ -1,4 +1,5 @@
 import { Phone, PhoneCall } from "lucide-react";
+import { useChatActions } from "../ChatContext";
 
 interface CallData {
   call_id: string;
@@ -17,6 +18,8 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function CallCard({ data }: { data: CallData }) {
+  const { sendMessage } = useChatActions();
+
   return (
     <div className="mt-3 p-4 rounded-lg bg-white/[0.03] border border-white/5">
       <div className="flex items-center gap-3 mb-3">
@@ -39,12 +42,17 @@ export default function CallCard({ data }: { data: CallData }) {
         <span>ID: {data.call_id}</span>
         <span>Started: {data.started_at}</span>
       </div>
-      <div className="flex gap-2 mt-3">
-        <button className="flex-1 py-1.5 text-xs text-red-400 border border-red-400/20 rounded-lg hover:bg-red-400/10 transition-colors flex items-center justify-center gap-1">
-          <Phone className="w-3 h-3" />
-          End Call
-        </button>
-      </div>
+      {(data.status === "ringing" || data.status === "in_progress") && (
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => sendMessage("End call")}
+            className="flex-1 py-1.5 text-xs text-red-400 border border-red-400/20 rounded-lg hover:bg-red-400/10 transition-colors flex items-center justify-center gap-1"
+          >
+            <Phone className="w-3 h-3" />
+            End Call
+          </button>
+        </div>
+      )}
     </div>
   );
 }

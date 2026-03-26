@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { CheckSquare, Square, Circle } from "lucide-react";
 
 interface TodoItem {
@@ -15,7 +16,13 @@ const priorityColors = {
 };
 
 export default function TodoCard({ data }: { data: { todos: TodoItem[] } }) {
-  const todos = data.todos ?? [];
+  const [todos, setTodos] = useState(data.todos ?? []);
+
+  const toggleTodo = (id: string) => {
+    setTodos((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+    );
+  };
 
   return (
     <div className="mt-2 rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
@@ -32,7 +39,10 @@ export default function TodoCard({ data }: { data: { todos: TodoItem[] } }) {
             key={todo.id}
             className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.02] transition-colors"
           >
-            <button className="shrink-0 text-neutral-500 hover:text-cyan-400 transition-colors">
+            <button
+              onClick={() => toggleTodo(todo.id)}
+              className="shrink-0 text-neutral-500 hover:text-cyan-400 transition-colors"
+            >
               {todo.completed ? (
                 <CheckSquare className="w-4 h-4 text-cyan-400" />
               ) : (

@@ -1,4 +1,5 @@
 import { Plane, Clock, ArrowRight } from "lucide-react";
+import { useChatActions } from "../ChatContext";
 
 interface Flight {
   airline: string;
@@ -13,6 +14,7 @@ interface Flight {
 }
 
 export default function FlightCard({ data }: { data: { results: Flight[] } }) {
+  const { sendMessage } = useChatActions();
   const flights = data.results ?? [];
 
   return (
@@ -46,7 +48,10 @@ export default function FlightCard({ data }: { data: { results: Flight[] } }) {
           </div>
           <div className="text-right shrink-0">
             <div className="text-white font-semibold text-sm">{f.price}</div>
-            <button className="mt-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors">
+            <button
+              onClick={() => sendMessage(`Book flight ${f.flight_no} — ${f.airline} for ${f.price}`)}
+              className="mt-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
               Book
             </button>
           </div>
